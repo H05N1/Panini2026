@@ -12,6 +12,7 @@
 <link rel="icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <title>Panini World Cup 2026 — Collection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&display=swap');
 
@@ -109,6 +110,11 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .team summary::-webkit-details-marker{display:none}
 .flag{font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
 .tname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.02em;flex:1}
+.abbr{font-size:12px;color:var(--gold);font-weight:600;letter-spacing:.1em;opacity:.85;margin-left:4px}
+.grp{font-family:'Barlow Condensed',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.5;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:6px;margin-right:8px}
+.pname{font-size:8px;line-height:1.05;text-align:center;opacity:.55;padding:0 2px;margin-top:1px;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cell.have .pname,.cell.dup .pname{opacity:.85;color:rgba(0,0,0,.75)}
+.cell.dup .pname{color:rgba(255,255,255,.85)}
 .tprog{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--gold);font-weight:600}
 .tbar{width:70px;height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-left:10px}
 .tbar i{display:block;height:100%;background:var(--green)}
@@ -116,7 +122,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .team[open] .chev{transform:rotate(180deg)}
 
 .grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));
   gap:8px;padding:6px 18px 20px;
 }
 .cell{
@@ -175,6 +181,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <div id="teams" class="teams"><div class="loading">Chargement de la collection…</div></div>
 <div class="hint">980 stickers • Tap = j'ai • re-tap = doublon (+1) • long press = retirer</div>
 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px">
+<button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Liste des manquants (PDF)</button>
 <button class="reset" id="export" style="border-color:var(--green);color:var(--green)">Exporter ma collection</button>
 <button class="reset" id="import" style="border-color:var(--blue);color:#5b86ff">Importer</button>
 <button class="reset" id="reset">Réinitialiser</button>
@@ -185,23 +192,41 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 
 <script>
 // 48 équipes WC 2026 — logo équipe + 17 joueurs = 18 stickers/équipe
+// Noms des joueurs par abréviation (18 max par équipe, ordre album).
+// Rempli progressivement — case numérotée si nom absent.
+const PLAYERS={};
+
+// 48 équipes dans l'ordre des groupes A→L (= ordre album Panini 2026)
+// [drapeau, nom FR, abréviation FIFA 3 lettres, groupe]
 const TEAMS=[
- ["🇨🇦","Canada"],["🇲🇽","Mexique"],["🇺🇸","USA"],["🇦🇷","Argentine"],
- ["🇧🇷","Brésil"],["🇫🇷","France"],["🇪🇸","Espagne"],["🏴󠁧󠁢󠁥󠁮󠁧󠁿","Angleterre"],
- ["🇩🇪","Allemagne"],["🇵🇹","Portugal"],["🇳🇱","Pays-Bas"],["🇧🇪","Belgique"],
- ["🇮🇹","Italie"],["🇭🇷","Croatie"],["🇺🇾","Uruguay"],["🇨🇴","Colombie"],
- ["🇯🇵","Japon"],["🇰🇷","Corée du Sud"],["🇲🇦","Maroc"],["🇸🇳","Sénégal"],
- ["🇬🇭","Ghana"],["🇨🇮","Côte d'Ivoire"],["🇳🇬","Nigeria"],["🇨🇲","Cameroun"],
- ["🇩🇿","Algérie"],["🇪🇬","Égypte"],["🇹🇳","Tunisie"],["🇦🇺","Australie"],
- ["🇮🇷","Iran"],["🇸🇦","Arabie Saoudite"],["🇶🇦","Qatar"],["🇨🇭","Suisse"],
- ["🇩🇰","Danemark"],["🇷🇸","Serbie"],["🇵🇱","Pologne"],["🇦🇹","Autriche"],
- ["🇹🇷","Turquie"],["🇳🇴","Norvège"],["🇸🇪","Suède"],["🇪🇨","Équateur"],
- ["🇵🇪","Pérou"],["🇨🇱","Chili"],["🇵🇾","Paraguay"],["🇻🇪","Venezuela"],
- ["🇨🇷","Costa Rica"],["🇵🇦","Panama"],["🇯🇲","Jamaïque"],["🇳🇿","Nouvelle-Zélande"]
+ // Groupe A
+ ["🇲🇽","Mexique","MEX","A"],["🇿🇦","Afrique du Sud","RSA","A"],["🇰🇷","Corée du Sud","KOR","A"],["🇨🇿","République tchèque","CZE","A"],
+ // Groupe B
+ ["🇨🇦","Canada","CAN","B"],["🇧🇦","Bosnie-Herzégovine","BIH","B"],["🇶🇦","Qatar","QAT","B"],["🇨🇭","Suisse","SUI","B"],
+ // Groupe C
+ ["🇧🇷","Brésil","BRA","C"],["🇲🇦","Maroc","MAR","C"],["🇭🇹","Haïti","HAI","C"],["🏴󠁧󠁢󠁳󠁣󠁴󠁿","Écosse","SCO","C"],
+ // Groupe D
+ ["🇺🇸","États-Unis","USA","D"],["🇵🇾","Paraguay","PAR","D"],["🇦🇺","Australie","AUS","D"],["🇹🇷","Turquie","TUR","D"],
+ // Groupe E
+ ["🇩🇪","Allemagne","GER","E"],["🇨🇼","Curaçao","CUW","E"],["🇨🇮","Côte d'Ivoire","CIV","E"],["🇪🇨","Équateur","ECU","E"],
+ // Groupe F
+ ["🇳🇱","Pays-Bas","NED","F"],["🇯🇵","Japon","JPN","F"],["🇸🇪","Suède","SWE","F"],["🇹🇳","Tunisie","TUN","F"],
+ // Groupe G
+ ["🇧🇪","Belgique","BEL","G"],["🇪🇬","Égypte","EGY","G"],["🇮🇷","Iran","IRN","G"],["🇳🇿","Nouvelle-Zélande","NZL","G"],
+ // Groupe H
+ ["🇪🇸","Espagne","ESP","H"],["🇨🇻","Cap-Vert","CPV","H"],["🇸🇦","Arabie saoudite","KSA","H"],["🇺🇾","Uruguay","URU","H"],
+ // Groupe I
+ ["🇫🇷","France","FRA","I"],["🇸🇳","Sénégal","SEN","I"],["🇮🇶","Irak","IRQ","I"],["🇳🇴","Norvège","NOR","I"],
+ // Groupe J
+ ["🇦🇷","Argentine","ARG","J"],["🇩🇿","Algérie","ALG","J"],["🇦🇹","Autriche","AUT","J"],["🇯🇴","Jordanie","JOR","J"],
+ // Groupe K
+ ["🇵🇹","Portugal","POR","K"],["🇨🇩","RD Congo","COD","K"],["🇺🇿","Ouzbékistan","UZB","K"],["🇨🇴","Colombie","COL","K"],
+ // Groupe L
+ ["🏴󠁧󠁢󠁥󠁮󠁧󠁿","Angleterre","ENG","L"],["🇭🇷","Croatie","CRO","L"],["🇬🇭","Ghana","GHA","L"],["🇵🇦","Panama","PAN","L"]
 ];
 const PER=20; // 1 badge + 1 photo équipe + 18 joueurs
 const SPECIAL=20; // section finale: intro, FIFA Museum, mascottes, emblèmes
-const KEY="panini_wc2026_v2";
+const KEY="panini_wc2026_v3";
 let state={};       // index -> count
 let filter="all";
 let q="";
@@ -247,8 +272,10 @@ function render(){
 
   const wrap=$("teams");wrap.innerHTML="";
   TEAMS.forEach((tm,ti)=>{
-    if(q && !tm[1].toLowerCase().includes(q))return;
+    const abbr=tm[2], grp=tm[3];
+    if(q && !tm[1].toLowerCase().includes(q) && !abbr.toLowerCase().includes(q) && !("groupe "+grp.toLowerCase()).includes(q))return;
     const base=ti*PER;
+    const roster=PLAYERS[abbr]||[];
     let have=0,cells="";
     let visibleAny=false;
     for(let s=0;s<PER;s++){
@@ -262,12 +289,13 @@ function render(){
       if(filter==="dup" && c<2)continue;
       visibleAny=true;
       // 0=badge, 1=photo équipe, 2..19 = joueurs 1..18
-      let label,ic;
+      let label,ic,name="";
       if(s===0){label="BADGE";ic="🛡️";}
       else if(s===1){label="PHOTO";ic="📸";}
-      else{label=s-1;ic="⚽";}
-      cells+=`<div class="${cls}" ${extra} data-i="${idx}">
-        <span class="ic">${ic}</span><span class="num">${label}</span></div>`;
+      else{label=s-1;ic="⚽";name=roster[s-2]||"";}
+      const nameHtml=name?`<span class="pname">${name}</span>`:"";
+      cells+=`<div class="${cls}" ${extra} data-i="${idx}" title="${name}">
+        <span class="ic">${ic}</span><span class="num">${label}</span>${nameHtml}</div>`;
     }
     if((filter==="miss"||filter==="dup") && !visibleAny)return;
     const pct=Math.round(have/PER*100);
@@ -276,7 +304,8 @@ function render(){
     if(q||filter!=="all")d.open=true;
     d.innerHTML=`<summary>
         <span class="flag">${tm[0]}</span>
-        <span class="tname">${tm[1]}</span>
+        <span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span>
+        <span class="grp">Gr. ${grp}</span>
         <span class="tprog">${have}/${PER}</span>
         <span class="tbar"><i style="width:${pct}%"></i></span>
         <span class="chev">▾</span>
@@ -346,7 +375,79 @@ $("reset").onclick=()=>{
   if(confirm("Effacer toute la collection ?")){state={};save();render();toast("Collection vidée");}
 };
 
-$("export").onclick=()=>{
+// ---- PDF liste des manquants ----
+function buildMissing(){
+  const out=[];
+  TEAMS.forEach((tm,ti)=>{
+    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[];
+    const base=ti*PER, miss=[];
+    for(let s=0;s<PER;s++){
+      if((state[base+s]||0)===0){
+        let lbl;
+        if(s===0)lbl="Badge";
+        else if(s===1)lbl="Photo équipe";
+        else lbl=(roster[s-2]?roster[s-2]:"Joueur "+(s-1));
+        miss.push((s+1)+". "+lbl); // n° d'autocollant relatif équipe
+      }
+    }
+    if(miss.length)out.push({titre:`${tm[1]} (${abbr}) — Groupe ${grp}`,miss});
+  });
+  // section spéciale
+  const sbase=TEAMS.length*PER, sm=[];
+  for(let s=0;s<SPECIAL;s++){if((state[sbase+s]||0)===0)sm.push((s+1)+". Spécial");}
+  if(sm.length)out.push({titre:"Spéciaux & Histoire",miss:sm});
+  return out;
+}
+
+$("pdf").onclick=()=>{
+  if(!window.jspdf){toast("PDF indisponible hors-ligne 1ère fois");return;}
+  const groups=buildMissing();
+  const t=totals();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210,M=14;let y=20;
+
+  const header=()=>{
+    doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");
+    doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);
+    doc.text("PANINI WORLD CUP 2026 — Liste des manquants",M,11);
+  };
+  header();
+  doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");doc.setFontSize(10);
+  doc.text(`Collés ${t.have}/${t.total} • Manquants ${t.miss} • Doublons ${t.dup} • ${new Date().toLocaleDateString("fr-BE")}`,M,y);
+  y+=8;
+
+  if(!groups.length){
+    doc.setFontSize(14);doc.setTextColor(0,150,80);
+    doc.text("🎉 Album complet, bravo Tonton !",M,y+10);
+  }
+
+  groups.forEach(g=>{
+    if(y>275){doc.addPage();header();y=24;}
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(0,71,255);
+    doc.text(g.titre,M,y);
+    doc.setTextColor(150,150,150);doc.setFontSize(8);
+    doc.text(`${g.miss.length} manquant(s)`,W-M,y,{align:"right"});
+    y+=5;
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(40,40,40);
+    // 3 colonnes
+    const col=(W-2*M)/3, perCol=Math.ceil(g.miss.length/3);
+    let maxRows=0;
+    for(let c=0;c<3;c++){
+      const slice=g.miss.slice(c*perCol,(c+1)*perCol);
+      maxRows=Math.max(maxRows,slice.length);
+      slice.forEach((line,r)=>{
+        if(y+r*4.6>286){/* débordement géré par hauteur calculée */}
+        doc.text(line.length>34?line.slice(0,33)+"…":line, M+c*col, y+r*4.6);
+      });
+    }
+    y+=maxRows*4.6+5;
+    doc.setDrawColor(230,230,230);doc.line(M,y-3,W-M,y-3);
+  });
+
+  doc.save("panini-manquants-"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF généré");
+};
   const blob=new Blob([JSON.stringify(state)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);

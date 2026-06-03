@@ -1,5 +1,5 @@
-const CACHE="panini-wc2026-v2";
-const ASSETS=["./","./index.html","./manifest.json","./icon.svg"];
+const CACHE="panini-wc2026-v3";
+const ASSETS=["./","./index.html","./manifest.json","./icon.svg","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"];
 self.addEventListener("install",e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
