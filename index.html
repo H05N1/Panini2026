@@ -137,7 +137,8 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   user-select:none;
 }
 .cell:active{transform:scale(.94)}
-.cell .num{font-family:var(--font-display);font-size:11px;opacity:.4}
+.cell .num{font-family:var(--font-cond);font-weight:700;font-size:10px;letter-spacing:.02em;opacity:.5;white-space:nowrap}
+.cell.have .num,.cell.dup .num{opacity:.9}
 .cell .ic{font-size:18px;opacity:.25}
 .cell.have{
   background:linear-gradient(155deg,var(--gold),#ff7a00);
@@ -232,6 +233,7 @@ const KEY="panini_wc2026_v3";
 let state={};       // index -> count
 let filter="all";
 let q="";
+const openTeams=new Set();   // indices des équipes dont le panneau est ouvert
 
 const $=id=>document.getElementById(id);
 const toast=(m)=>{const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._);t._=setTimeout(()=>t.classList.remove("show"),1400)};
@@ -290,20 +292,23 @@ function render(){
       if(filter==="miss" && c>0)continue;
       if(filter==="dup" && c<2)continue;
       visibleAny=true;
-      // 0=badge, 1=photo équipe, 2..19 = joueurs 1..18
-      let label,ic,name="";
-      if(s===0){label="BADGE";ic="🛡️";}
-      else if(s===1){label="PHOTO";ic="📸";}
-      else{label=s-1;ic="⚽";name=roster[s-2]||"";}
+      // Numéro d'étiquette 1..20 par équipe, préfixé du code pays (ex. MEX 1)
+      const stickerNo=s+1;
+      const code=`${abbr} ${stickerNo}`;
+      let ic,name="";
+      if(s===0){ic="🛡️";}
+      else if(s===1){ic="📸";}
+      else{ic="⚽";name=roster[s-2]||"";}
       const nameHtml=name?`<span class="pname">${name}</span>`:"";
-      cells+=`<div class="${cls}" ${extra} data-i="${idx}" title="${name}">
-        <span class="ic">${ic}</span><span class="num">${label}</span>${nameHtml}</div>`;
+      cells+=`<div class="${cls}" ${extra} data-i="${idx}" title="${code}${name?' — '+name:''}">
+        <span class="ic">${ic}</span><span class="num">${code}</span>${nameHtml}</div>`;
     }
     if((filter==="miss"||filter==="dup") && !visibleAny)return;
     const pct=Math.round(have/PER*100);
     const d=document.createElement("details");
     d.className="team";
-    if(q||filter!=="all")d.open=true;
+    if(q||filter!=="all"||openTeams.has(ti))d.open=true;
+    d.dataset.team=ti;
     d.innerHTML=`<summary>
         <span class="flag">${tm[0]}</span>
         <span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span>
@@ -337,7 +342,8 @@ function render(){
       const pct=Math.round(have/SPECIAL*100);
       const d=document.createElement("details");
       d.className="team";
-      if(q||filter!=="all")d.open=true;
+      if(q||filter!=="all"||openTeams.has("S"))d.open=true;
+      d.dataset.team="S";
       d.innerHTML=`<summary>
           <span class="flag">⭐</span>
           <span class="tname">Spéciaux & Histoire</span>
@@ -363,6 +369,13 @@ function bindCells(){
     el.ontouchstart=()=>{timer=setTimeout(()=>{remove(i);timer=null;},550)};
     el.ontouchend=()=>{if(timer){clearTimeout(timer)}};
     el.ontouchmove=()=>{if(timer){clearTimeout(timer);timer=null}};
+  });
+  // Mémoriser quels panneaux sont ouverts pour les rouvrir après re-render
+  document.querySelectorAll("details.team").forEach(d=>{
+    const key=d.dataset.team==="S"?"S":+d.dataset.team;
+    d.addEventListener("toggle",()=>{
+      if(d.open)openTeams.add(key);else openTeams.delete(key);
+    });
   });
 }
 

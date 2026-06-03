@@ -1,4 +1,4 @@
-const CACHE="panini-wc2026-v6";
+const CACHE="panini-wc2026-v7";
 const ASSETS=["./","./index.html","./manifest.json","./icon.svg","https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"];
 
 self.addEventListener("install",e=>{
