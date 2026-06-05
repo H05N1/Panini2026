@@ -62,7 +62,8 @@ onAuthStateChanged(auth, user => {
   const appDiv = document.getElementById('app');
 
   if (user) {
-    // Cacher landing, montrer app
+    currentUser = user;
+    window._currentUser = user;
     landing.style.display = 'none';
     appDiv.classList.add('visible');
     if (info) { info.textContent = user.displayName || user.email; info.style.display = 'block'; }
@@ -272,6 +273,53 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 /* App cachée par défaut */
 #app{display:none}
 #app.visible{display:block}
+
+/* Navigation tabs */
+.nav-tabs{
+  display:flex;gap:0;background:rgba(255,255,255,.04);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:49;
+}
+.nav-tab{
+  flex:1;background:none;border:none;color:rgba(255,255,255,.5);
+  padding:14px 8px;cursor:pointer;font-family:var(--font-cond);
+  text-transform:uppercase;letter-spacing:.1em;font-size:12px;
+  border-bottom:2px solid transparent;transition:all .2s;
+}
+.nav-tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* Pages */
+.page{display:none}.page.on{display:block}
+
+/* Profil */
+.profile-wrap{max-width:480px;margin:0 auto;padding:32px 16px 80px}
+.avatar{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),#ff7a00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin:0 auto 16px;
+  box-shadow:0 6px 24px rgba(255,178,0,.35);
+}
+.profile-name{font-family:var(--font-display);font-size:24px;text-align:center;text-transform:uppercase;margin-bottom:4px}
+.profile-email{text-align:center;opacity:.5;font-size:13px;font-family:var(--font-cond);letter-spacing:.05em;margin-bottom:24px}
+.badge-free{display:inline-block;background:rgba(255,255,255,.07);border:1px solid var(--line);color:rgba(255,255,255,.6);font-family:var(--font-cond);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin:0 auto 32px;display:block;width:fit-content;margin:0 auto 32px}
+.badge-premium{display:inline-block;background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin:0 auto 32px;display:block;width:fit-content;}
+.profile-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+.profile-card h3{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.15em;font-size:11px;opacity:.5;margin-bottom:16px}
+.profile-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.profile-row:last-child{border-bottom:none}
+.profile-row span:first-child{font-family:var(--font-cond);font-size:13px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}
+.profile-row span:last-child{font-family:var(--font-cond);font-size:14px;font-weight:700;color:var(--gold)}
+.btn-premium{
+  width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold),#ff7a00);
+  color:#000;font-family:var(--font-display);font-size:15px;
+  text-transform:uppercase;letter-spacing:.08em;
+  box-shadow:0 6px 24px rgba(255,178,0,.3);margin-bottom:12px;
+  transition:transform .15s;
+}
+.btn-premium:active{transform:scale(.98)}
+.btn-premium:disabled{opacity:.4;cursor:not-allowed}
+.btn-logout{width:100%;padding:12px;border-radius:14px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -294,10 +342,15 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 
 <!-- APP (cachée jusqu'à connexion) -->
 <div id="app">
-<div class="auth-bar">
-  <span id="userInfo"></span>
-  <button id="authBtn" onclick="window._logout && window._logout()">Déconnexion</button>
-</div>
+
+<!-- Nav tabs -->
+<nav class="nav-tabs">
+  <button class="nav-tab on" data-page="collection">⚽ Collection</button>
+  <button class="nav-tab" data-page="profil">👤 Profil</button>
+</nav>
+
+<!-- PAGE COLLECTION -->
+<div id="page-collection" class="page on">
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
@@ -330,6 +383,36 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 <input type="file" id="file" accept="application/json" style="display:none">
 </div><!-- /wrap -->
+</div><!-- /page-collection -->
+
+<!-- PAGE PROFIL -->
+<div id="page-profil" class="page">
+<div class="profile-wrap">
+  <div class="avatar" id="profileAvatar">👤</div>
+  <div class="profile-name" id="profileName">—</div>
+  <div class="profile-email" id="profileEmail">—</div>
+  <div class="badge-free" id="profileBadge">FREE</div>
+
+  <div class="profile-card">
+    <h3>Ma collection</h3>
+    <div class="profile-row"><span>Collés</span><span id="pHave">0</span></div>
+    <div class="profile-row"><span>Manquants</span><span id="pMiss">0</span></div>
+    <div class="profile-row"><span>Doublons</span><span id="pDup">0</span></div>
+    <div class="profile-row"><span>Progression</span><span id="pPct">0%</span></div>
+  </div>
+
+  <div class="profile-card">
+    <h3>Mon compte</h3>
+    <div class="profile-row"><span>Statut</span><span id="pStatus">FREE</span></div>
+    <div class="profile-row"><span>Connexion</span><span id="pProvider">Google</span></div>
+    <div class="profile-row"><span>Membre depuis</span><span id="pSince">—</span></div>
+  </div>
+
+  <button class="btn-premium" disabled>⭐ Passer Premium — Bientôt disponible</button>
+  <button class="btn-logout" onclick="window._logout && window._logout()">Déconnexion</button>
+</div>
+</div><!-- /page-profil -->
+
 </div><!-- /app -->
 <div class="toast" id="toast"></div>
 
@@ -635,6 +718,45 @@ $("file").onchange=e=>{
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
+
+// ---- Navigation tabs ----
+document.querySelectorAll(".nav-tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".nav-tab").forEach(t=>t.classList.remove("on"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+    tab.classList.add("on");
+    document.getElementById("page-"+tab.dataset.page).classList.add("on");
+    if(tab.dataset.page==="profil") updateProfile();
+  };
+});
+
+// ---- Mise à jour page profil ----
+function updateProfile(){
+  const t=totals();
+  const pct=t.total>0?Math.round(t.have/t.total*100):0;
+  const el=id=>document.getElementById(id);
+  el("pHave").textContent=t.have;
+  el("pMiss").textContent=t.miss;
+  el("pDup").textContent=t.dup;
+  el("pPct").textContent=pct+"%";
+  // Infos user depuis Firebase (exposées par le module)
+  if(window._currentUser){
+    const u=window._currentUser;
+    el("profileName").textContent=u.displayName||"Utilisateur";
+    el("profileEmail").textContent=u.email||"";
+    el("profileAvatar").textContent=u.displayName?u.displayName[0].toUpperCase():"👤";
+    // Date inscription
+    if(u.metadata && u.metadata.creationTime){
+      const d=new Date(u.metadata.creationTime);
+      el("pSince").textContent=d.toLocaleDateString("fr-BE",{day:"numeric",month:"long",year:"numeric"});
+    }
+    // Provider
+    const prov=u.providerData[0]?.providerId||"";
+    el("pProvider").textContent=prov==="google.com"?"Google":prov==="password"?"Email":prov;
+  }
+}
+window._updateProfile=updateProfile;
+
 load();
 </script>
 </body>
