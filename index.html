@@ -15,7 +15,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, get, push, update, remove as dbRemove }
@@ -84,12 +84,7 @@ window._checkPremium = () => {
   return get(ref(db, 'users/'+currentUser.uid+'/premium')).then(snap => snap.val() === true);
 };
 
-window._loginGoogle = () => {
-  const p = new GoogleAuthProvider();
-  // Forcer l'utilisation du domaine Firebase pour éviter les problèmes COOP/cookies
-  auth.config.authDomain = 'mondial-panini-2026.firebaseapp.com';
-  signInWithRedirect(auth, p).catch(e => window._authErr && window._authErr(e.code));
-};
+window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
 window._resetPassword = (email) => sendPasswordResetEmail(auth, email)
   .then(() => { if(window._toast) window._toast('Email envoyé ✓ Vérifie ta boîte mail'); })
   .catch(e => window._authErr && window._authErr(e.code));
@@ -98,11 +93,6 @@ window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth
 window._logout = () => signOut(auth).then(() => window.location.reload());
 window._updateDisplayName = (name) => updateProfile(auth.currentUser, {displayName: name}).then(() => { if(window._currentUser) window._currentUser.displayName = name; });
 
-// Gérer le retour après redirect Google
-getRedirectResult(auth).then(result => {
-  if(result && result.user) console.log('Redirect OK:', result.user.email);
-  else console.log('Redirect: pas de résultat');
-}).catch(e => console.error('Redirect error:', e.code, e.message));
 
 onAuthStateChanged(auth, user => {
   const landing = document.getElementById('landing');
@@ -392,7 +382,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v2.3</div>
+<div class="version">v2.5</div>
 
 <script>
 const PLAYERS={};
