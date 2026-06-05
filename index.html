@@ -57,31 +57,30 @@ window._logout = function() {
 
 onAuthStateChanged(auth, user => {
   currentUser = user;
-  const btn = document.getElementById('authBtn');
   const info = document.getElementById('userInfo');
+  const landing = document.getElementById('landing');
+  const appDiv = document.getElementById('app');
+
   if (user) {
-    btn.textContent = 'Déconnexion';
-    btn.onclick = window._logout;
-    info.textContent = user.displayName || user.email;
-    info.style.display = 'block';
-    // Charger collection depuis le cloud
+    // Cacher landing, montrer app
+    landing.style.display = 'none';
+    appDiv.classList.add('visible');
+    if (info) { info.textContent = user.displayName || user.email; info.style.display = 'block'; }
+
+    // Charger collection depuis Firebase — source de vérité
     onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
       const data = snap.val();
-      if (data && typeof data === 'object') {
-        // Mettre à jour le state local ET re-sauvegarder en localStorage
-        if (window._loadCloud) {
-          window._loadCloud(data);
-        } else {
-          window._state = data;
-          if (window._render) window._render();
-        }
-        window._toast('Collection chargée ☁️');
+      if (window._loadCloud) {
+        window._loadCloud(data && typeof data === 'object' ? data : {});
+        if (data && Object.keys(data).length > 0) window._toast('Collection chargée ☁️');
       }
     }, { onlyOnce: true });
+
   } else {
-    btn.textContent = '🔑 Connexion Google';
-    btn.onclick = window._loginGoogle;
-    info.style.display = 'none';
+    // Montrer landing, cacher app
+    landing.style.display = 'flex';
+    appDiv.classList.remove('visible');
+    if (info) info.style.display = 'none';
   }
 });
 </script>
@@ -232,12 +231,72 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 #authBtn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:8px 16px;border-radius:10px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:background .2s}
 #authBtn:hover{background:rgba(255,255,255,.14)}
 #userInfo{font-family:var(--font-cond);font-size:12px;color:var(--gold);letter-spacing:.05em;display:none}
+
+/* Page d'accueil */
+#landing{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;text-align:center;padding:40px 24px;
+}
+.landing-ball{font-size:80px;margin-bottom:24px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.landing-title{
+  font-family:var(--font-display);font-size:clamp(48px,12vw,96px);
+  line-height:.9;text-transform:uppercase;
+  background:linear-gradient(180deg,#fff,#9aa3b2);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:8px;
+}
+.landing-title span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
+.landing-sub{
+  font-family:var(--font-cond);letter-spacing:.3em;font-size:13px;
+  color:var(--gold);text-transform:uppercase;margin-bottom:40px;opacity:.85;
+}
+.landing-desc{
+  font-size:16px;color:rgba(255,255,255,.6);max-width:400px;
+  line-height:1.6;margin-bottom:48px;font-family:var(--font-body);
+}
+.landing-desc strong{color:#fff}
+.btn-login{
+  display:inline-flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,var(--gold),#ff7a00);
+  color:#000;font-family:var(--font-display);font-size:16px;
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:18px 40px;border-radius:99px;border:none;cursor:pointer;
+  box-shadow:0 8px 32px rgba(255,178,0,.4);
+  transition:transform .15s, box-shadow .2s;
+}
+.btn-login:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(255,178,0,.55)}
+.btn-login:active{transform:scale(.97)}
+.landing-note{margin-top:24px;font-size:12px;opacity:.35;font-family:var(--font-cond);letter-spacing:.1em}
+
+/* App cachée par défaut */
+#app{display:none}
+#app.visible{display:block}
 </style>
 </head>
 <body>
+
+<!-- PAGE D'ACCUEIL -->
+<div id="landing">
+  <div class="landing-ball">⚽</div>
+  <div class="landing-title">Panini <span>2026</span></div>
+  <div class="landing-sub">FIFA World Cup • USA · Canada · Mexico</div>
+  <div class="landing-desc">
+    Gère ta collection de <strong>980 stickers</strong> Panini.<br>
+    Suis ta progression, note tes doublons,<br>génère ta liste de manquants.
+  </div>
+  <button class="btn-login" onclick="window._loginGoogle && window._loginGoogle()">
+    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+    Connexion avec Google
+  </button>
+  <div class="landing-note">Ta collection est sauvegardée dans le cloud · Accessible sur tous tes appareils</div>
+</div>
+
+<!-- APP (cachée jusqu'à connexion) -->
+<div id="app">
 <div class="auth-bar">
   <span id="userInfo"></span>
-  <button id="authBtn" onclick="window._loginGoogle && window._loginGoogle()">🔑 Connexion Google</button>
+  <button id="authBtn" onclick="window._logout && window._logout()">Déconnexion</button>
 </div>
 <div class="wrap">
 <header>
@@ -270,7 +329,8 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <button class="reset" id="reset">Réinitialiser</button>
 </div>
 <input type="file" id="file" accept="application/json" style="display:none">
-</div>
+</div><!-- /wrap -->
+</div><!-- /app -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -323,13 +383,11 @@ function load(){
     const r=localStorage.getItem(KEY);
     state=r?JSON.parse(r):{};
   }catch(e){state={}}
-  window._state = state;
   window._render = render;
   window._toast = toast;
-  // Fonction pour charger depuis Firebase et mettre à jour le vrai state
+  // Fonction pour charger depuis Firebase — écrase le local
   window._loadCloud = function(data) {
-    state = data;
-    window._state = state;
+    state = data || {};
     try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
     render();
   };
@@ -337,7 +395,6 @@ function load(){
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){console.error(e)}
-  window._state = state;
   if(window._cloudSave) window._cloudSave(state);
 }
 
