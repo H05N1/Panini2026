@@ -16,7 +16,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -47,11 +47,27 @@ window._cloudSave = function(stateData) {
 // Login Google
 window._loginGoogle = function() {
   const provider = new GoogleAuthProvider();
-  signInWithPopup(auth, provider).catch(e => console.error(e));
+  signInWithPopup(auth, provider).catch(e => {
+    window._authError && window._authError(e.code);
+  });
+};
+
+// Inscription email/mdp
+window._registerEmail = function(name, email, password) {
+  createUserWithEmailAndPassword(auth, email, password)
+    .then(cred => updateProfile(cred.user, { displayName: name }))
+    .catch(e => window._authError && window._authError(e.code));
+};
+
+// Connexion email/mdp
+window._loginEmail = function(email, password) {
+  signInWithEmailAndPassword(auth, email, password)
+    .catch(e => window._authError && window._authError(e.code));
 };
 
 // Logout
 window._logout = function() {
+  try{localStorage.removeItem("panini_wc2026_v3");}catch(e){}
   signOut(auth);
 };
 
@@ -320,6 +336,20 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .btn-premium:active{transform:scale(.98)}
 .btn-premium:disabled{opacity:.4;cursor:not-allowed}
 .btn-logout{width:100%;padding:12px;border-radius:14px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}
+/* Landing forms */
+.landing-tabs{display:flex;gap:0;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:28px;width:100%;max-width:320px}
+.landing-tab{flex:1;background:none;border:none;color:rgba(255,255,255,.5);padding:12px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:all .2s}
+.landing-tab.on{background:var(--gold);color:#000}
+.landing-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px}
+.landing-form input{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:14px 16px;border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border .2s}
+.landing-form input:focus{border-color:var(--gold)}
+.landing-form input::placeholder{color:rgba(255,255,255,.35)}
+.btn-submit{background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;padding:16px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(255,178,0,.3);transition:transform .15s}
+.btn-submit:active{transform:scale(.98)}
+.auth-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:320px}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-divider span{font-family:var(--font-cond);font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.1em}
+.auth-error{color:var(--red);font-size:12px;font-family:var(--font-cond);letter-spacing:.05em;text-align:center;min-height:16px}
 </style>
 </head>
 <body>
@@ -329,13 +359,35 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   <div class="landing-ball">⚽</div>
   <div class="landing-title">Panini <span>2026</span></div>
   <div class="landing-sub">FIFA World Cup • USA · Canada · Mexico</div>
-  <div class="landing-desc">
-    Gère ta collection de <strong>980 stickers</strong> Panini.<br>
-    Suis ta progression, note tes doublons,<br>génère ta liste de manquants.
+
+  <!-- Tabs Connexion / Inscription -->
+  <div class="landing-tabs">
+    <button class="landing-tab on" onclick="switchAuthTab('login')">Connexion</button>
+    <button class="landing-tab" onclick="switchAuthTab('register')">Inscription</button>
   </div>
+
+  <!-- Formulaire Connexion -->
+  <div class="landing-form" id="formLogin">
+    <input type="email" id="loginEmail" placeholder="Adresse email" autocomplete="email">
+    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="auth-error" id="loginError"></div>
+    <button class="btn-submit" onclick="doLogin()">Se connecter</button>
+  </div>
+
+  <!-- Formulaire Inscription -->
+  <div class="landing-form" id="formRegister" style="display:none">
+    <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
+    <input type="email" id="regEmail" placeholder="Adresse email" autocomplete="email">
+    <input type="password" id="regPassword" placeholder="Mot de passe (6 caractères min)" autocomplete="new-password">
+    <div class="auth-error" id="registerError"></div>
+    <button class="btn-submit" onclick="doRegister()">Créer mon compte</button>
+  </div>
+
+  <div class="auth-divider"><span>ou</span></div>
+
   <button class="btn-login" onclick="window._loginGoogle && window._loginGoogle()">
     <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
-    Connexion avec Google
+    Continuer avec Google
   </button>
   <div class="landing-note">Ta collection est sauvegardée dans le cloud · Accessible sur tous tes appareils</div>
 </div>
@@ -756,6 +808,51 @@ function updateProfile(){
   }
 }
 window._updateProfile=updateProfile;
+
+// ---- Auth forms ----
+const authErrors = {
+  'auth/invalid-email': 'Email invalide',
+  'auth/user-not-found': 'Aucun compte avec cet email',
+  'auth/wrong-password': 'Mot de passe incorrect',
+  'auth/invalid-credential': 'Email ou mot de passe incorrect',
+  'auth/email-already-in-use': 'Cet email est déjà utilisé',
+  'auth/weak-password': 'Mot de passe trop court (6 car. min)',
+  'auth/too-many-requests': 'Trop de tentatives, réessaie plus tard',
+};
+window._authError = function(code) {
+  const msg = authErrors[code] || 'Erreur de connexion';
+  const el = document.getElementById('loginError') || document.getElementById('registerError');
+  // Afficher dans le bon formulaire
+  const loginErr = document.getElementById('loginError');
+  const regErr = document.getElementById('registerError');
+  if(document.getElementById('formLogin').style.display !== 'none') loginErr.textContent = msg;
+  else regErr.textContent = msg;
+};
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.landing-tab').forEach((t,i) => t.classList.toggle('on', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('formLogin').style.display = tab==='login' ? 'flex' : 'none';
+  document.getElementById('formRegister').style.display = tab==='register' ? 'flex' : 'none';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('registerError').textContent = '';
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').textContent = '';
+  if(!email || !pass) { document.getElementById('loginError').textContent = 'Remplis tous les champs'; return; }
+  window._loginEmail && window._loginEmail(email, pass);
+}
+
+function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPassword').value;
+  document.getElementById('registerError').textContent = '';
+  if(!name || !email || !pass) { document.getElementById('registerError').textContent = 'Remplis tous les champs'; return; }
+  window._registerEmail && window._registerEmail(name, email, pass);
+}
 
 load();
 </script>
