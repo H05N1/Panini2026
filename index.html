@@ -87,14 +87,20 @@ onAuthStateChanged(auth, user => {
     // Vider immédiatement le state local avant de charger le cloud
     if (window._loadCloud) window._loadCloud({});
 
-    // Charger collection depuis Firebase — source de vérité
-    onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
-      const data = snap.val();
+    // Attendre que _loadCloud soit défini puis charger Firebase
+    const waitAndLoad = () => {
       if (window._loadCloud) {
-        window._loadCloud(data && typeof data === 'object' ? data : {});
-        if (data && Object.keys(data).length > 0) window._toast('Collection chargée ☁️');
+        window._loadCloud({});
+        onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
+          const data = snap.val();
+          window._loadCloud(data && typeof data === 'object' ? data : {});
+          if (data && Object.keys(data).length > 0) window._toast('Collection chargée ☁️');
+        }, { onlyOnce: true });
+      } else {
+        setTimeout(waitAndLoad, 50);
       }
-    }, { onlyOnce: true });
+    };
+    waitAndLoad();
 
   } else {
     // Montrer landing, cacher app
