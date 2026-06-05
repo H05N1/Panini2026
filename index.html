@@ -16,7 +16,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile }
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, get, push, update, remove as dbRemove }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -84,7 +84,9 @@ window._checkPremium = () => {
   return get(ref(db, 'users/'+currentUser.uid+'/premium')).then(snap => snap.val() === true);
 };
 
-window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
+window._resetPassword = (email) => sendPasswordResetEmail(auth, email)
+  .then(() => { if(window._toast) window._toast('Email envoyé ✓ Vérifie ta boîte mail'); })
+  .catch(e => window._authErr && window._authErr(e.code));
 window._loginEmail = (email,pass) => signInWithEmailAndPassword(auth,email,pass).catch(e=>window._authErr&&window._authErr(e.code));
 window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth,email,pass).then(c=>updateProfile(c.user,{displayName:name})).catch(e=>window._authErr&&window._authErr(e.code));
 window._logout = () => signOut(auth).then(() => window.location.reload());
@@ -267,6 +269,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
     </div>
     <div class="aerr" id="loginErr"></div>
     <button class="btn-sub" onclick="doLogin()">Se connecter</button>
+    <button type="button" onclick="doResetPassword()" style="background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font-cond);font-size:12px;cursor:pointer;text-decoration:underline;padding:0;letter-spacing:.05em">Mot de passe oublié ?</button>
   </div>
   <div class="lform" id="formRegister" style="display:none">
     <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
@@ -377,7 +380,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v1.8</div>
+<div class="version">v1.9</div>
 
 <script>
 const PLAYERS={};
@@ -731,7 +734,12 @@ function doLogin(){
   if(!email||!pass){document.getElementById('loginErr').textContent='Remplis tous les champs';return;}
   window._loginEmail&&window._loginEmail(email,pass);
 }
-function togglePwd(id, btn){
+function doResetPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  document.getElementById('loginErr').textContent='';
+  if(!email){document.getElementById('loginErr').textContent='Entre ton email d\'abord';return;}
+  window._resetPassword&&window._resetPassword(email);
+}
   const input=document.getElementById(id);
   if(input.type==='password'){input.type='text';btn.style.opacity='1';}
   else{input.type='password';btn.style.opacity='.5';}
