@@ -209,16 +209,26 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   </div>
   <div class="lform" id="formLogin">
     <input type="email" id="loginEmail" placeholder="Adresse email" autocomplete="email">
-    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password">
+    <div style="position:relative">
+      <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;padding-right:44px">
+      <button type="button" onclick="togglePwd('loginPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;opacity:.5;color:#fff">👁</button>
+    </div>
     <div class="aerr" id="loginErr"></div>
     <button class="btn-sub" onclick="doLogin()">Se connecter</button>
   </div>
   <div class="lform" id="formRegister" style="display:none">
     <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
     <input type="email" id="regEmail" placeholder="Adresse email" autocomplete="email">
-    <input type="password" id="regPassword" placeholder="Mot de passe (ex: Abc@1234)" autocomplete="new-password" oninput="checkPwd(this.value)">
+    <div style="position:relative">
+      <input type="password" id="regPassword" placeholder="Mot de passe (ex: Abc@1234)" autocomplete="new-password" oninput="checkPwd(this.value)" style="width:100%;padding-right:44px">
+      <button type="button" onclick="togglePwd('regPassword',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;opacity:.5;color:#fff">👁</button>
+    </div>
     <div class="pwd-strength"><div class="pwd-bar" id="pb1"></div><div class="pwd-bar" id="pb2"></div><div class="pwd-bar" id="pb3"></div><div class="pwd-bar" id="pb4"></div></div>
     <div class="pwd-label" id="pwdLabel"></div>
+    <div style="position:relative">
+      <input type="password" id="regPassword2" placeholder="Confirmer le mot de passe" autocomplete="new-password" style="width:100%;padding-right:44px">
+      <button type="button" onclick="togglePwd('regPassword2',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;opacity:.5;color:#fff">👁</button>
+    </div>
     <div class="aerr" id="registerErr"></div>
     <button class="btn-sub" onclick="doRegister()">Créer mon compte</button>
   </div>
@@ -299,7 +309,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v1.5</div>
+<div class="version">v1.7</div>
 
 <script>
 const PLAYERS={};
@@ -554,10 +564,20 @@ function doLogin(){
   if(!email||!pass){document.getElementById('loginErr').textContent='Remplis tous les champs';return;}
   window._loginEmail&&window._loginEmail(email,pass);
 }
+function togglePwd(id, btn){
+  const input=document.getElementById(id);
+  if(input.type==='password'){input.type='text';btn.style.opacity='1';}
+  else{input.type='password';btn.style.opacity='.5';}
+}
+
 function doRegister(){
-  const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPassword').value;
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPassword').value;
+  const pass2=document.getElementById('regPassword2').value;
   document.getElementById('registerErr').textContent='';
-  if(!name||!email||!pass){document.getElementById('registerErr').textContent='Remplis tous les champs';return;}
+  if(!name||!email||!pass||!pass2){document.getElementById('registerErr').textContent='Remplis tous les champs';return;}
+  if(pass!==pass2){document.getElementById('registerErr').textContent='Les mots de passe ne correspondent pas';return;}
   if(!isStrongPwd(pass)){document.getElementById('registerErr').textContent='Mdp trop faible : 8 car. min, majuscule, minuscule, chiffre et symbole requis';return;}
   window._registerEmail&&window._registerEmail(name,email,pass);
 }
