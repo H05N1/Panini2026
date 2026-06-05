@@ -43,7 +43,6 @@ window._cloudSave = (data) => {
   syncTimer = setTimeout(() => set(ref(db, 'users/'+currentUser.uid+'/collection'), data), 800);
 };
 
-window._loginGoogle = () => new GoogleAuthProvider() |> (p => signInWithPopup(auth, p).catch(e => window._authErr && window._authErr(e.code)));
 window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
 window._loginEmail = (email,pass) => signInWithEmailAndPassword(auth,email,pass).catch(e=>window._authErr&&window._authErr(e.code));
 window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth,email,pass).then(c=>updateProfile(c.user,{displayName:name})).catch(e=>window._authErr&&window._authErr(e.code));
