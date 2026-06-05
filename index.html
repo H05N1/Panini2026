@@ -380,7 +380,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v1.9</div>
+<div class="version">v2.0</div>
 
 <script>
 const PLAYERS={};
@@ -736,9 +736,12 @@ function doLogin(){
 }
 function doResetPassword(){
   const email=document.getElementById('loginEmail').value.trim();
-  document.getElementById('loginErr').textContent='';
-  if(!email){document.getElementById('loginErr').textContent='Entre ton email d\'abord';return;}
-  window._resetPassword&&window._resetPassword(email);
+  const errEl=document.getElementById('loginErr');
+  errEl.textContent='';
+  if(!email){errEl.textContent='Entre ton email d\'abord';return;}
+  if(!window._resetPassword){errEl.textContent='Chargement en cours, réessaie';return;}
+  errEl.textContent='Envoi en cours…';
+  window._resetPassword(email);
 }
   const input=document.getElementById(id);
   if(input.type==='password'){input.type='text';btn.style.opacity='1';}
@@ -757,7 +760,12 @@ function doRegister(){
   window._registerEmail&&window._registerEmail(name,email,pass);
 }
 
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+// Désinscrire le service worker pour éviter les conflits de cache
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  });
+}
 render();
 </script>
 </body>
