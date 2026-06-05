@@ -18,7 +18,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, set, onValue }
+import { getDatabase, ref, set, get, push, update, remove as dbRemove }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -37,10 +37,51 @@ const db = getDatabase(app);
 let currentUser = null;
 let syncTimer = null;
 
-window._cloudSave = (data) => {
-  if (!currentUser) return;
+// Sauvegarde la collection de l'album courant
+window._cloudSave = (albumId, data) => {
+  if (!currentUser || !albumId) return;
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => set(ref(db, 'users/'+currentUser.uid+'/collection'), data), 800);
+  syncTimer = setTimeout(() => set(ref(db, 'users/'+currentUser.uid+'/albums/'+albumId+'/collection'), data), 800);
+};
+
+// Charger tous les albums
+window._loadAlbums = () => {
+  if (!currentUser) return;
+  get(ref(db, 'users/'+currentUser.uid+'/albums')).then(snap => {
+    let albums = snap.val();
+    // Si aucun album, créer l'album principal
+    if (!albums) {
+      const newRef = push(ref(db, 'users/'+currentUser.uid+'/albums'));
+      set(newRef, { name: 'Mon album', collection: {} });
+      albums = { [newRef.key]: { name: 'Mon album', collection: {} } };
+    }
+    if (window._onAlbumsLoaded) window._onAlbumsLoaded(albums);
+  });
+};
+
+// Créer un nouvel album
+window._createAlbum = (name) => {
+  if (!currentUser) return Promise.reject();
+  const newRef = push(ref(db, 'users/'+currentUser.uid+'/albums'));
+  return set(newRef, { name, collection: {} }).then(() => newRef.key);
+};
+
+// Renommer un album
+window._renameAlbum = (albumId, name) => {
+  if (!currentUser) return;
+  set(ref(db, 'users/'+currentUser.uid+'/albums/'+albumId+'/name'), name);
+};
+
+// Supprimer un album
+window._deleteAlbum = (albumId) => {
+  if (!currentUser) return;
+  return dbRemove(ref(db, 'users/'+currentUser.uid+'/albums/'+albumId));
+};
+
+// Vérifier statut premium (stocké dans Firebase)
+window._checkPremium = () => {
+  if (!currentUser) return Promise.resolve(false);
+  return get(ref(db, 'users/'+currentUser.uid+'/premium')).then(snap => snap.val() === true);
 };
 
 window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
@@ -55,20 +96,12 @@ onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
     window._currentUser = user;
-    // 1. Vider immédiatement
     window._cloudState = {};
     if (window._applyCloud) window._applyCloud({});
-    // 2. Afficher l'app
     landing.style.display = 'none';
     appDiv.classList.add('visible');
-    // 3. Charger depuis Firebase
-    onValue(ref(db,'users/'+user.uid+'/collection'), snap => {
-      const data = snap.val();
-      const d = (data && typeof data==='object') ? data : {};
-      window._cloudState = d;
-      if (window._applyCloud) window._applyCloud(d);
-      if (Object.keys(d).length > 0 && window._toast) window._toast('Collection chargée ☁️');
-    }, { onlyOnce: true });
+    // Charger les albums
+    if (window._loadAlbums) window._loadAlbums();
   } else {
     currentUser = null;
     window._currentUser = null;
@@ -139,6 +172,25 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .loading{text-align:center;padding:60px;opacity:.5;font-family:var(--font-cond);letter-spacing:.2em;text-transform:uppercase}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:#000;padding:10px 22px;border-radius:99px;font-weight:600;font-family:var(--font-cond);letter-spacing:.08em;text-transform:uppercase;font-size:13px;transition:transform .3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0)}
+/* Albums */
+.album-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;}
+.album-bar::-webkit-scrollbar{display:none}
+.album-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid var(--line);color:rgba(255,255,255,.7);padding:6px 14px;border-radius:99px;cursor:pointer;font-family:var(--font-cond);font-size:12px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.album-chip.on{background:var(--gold);border-color:var(--gold);color:#000}
+.album-chip .del{font-size:14px;opacity:.6;margin-left:4px;line-height:1}
+.btn-add-album{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--line);color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;flex-shrink:0;transition:all .2s}
+.btn-add-album:hover{background:var(--gold);color:#000;border-color:var(--gold)}
+.btn-add-album:disabled{opacity:.3;cursor:not-allowed}
+.album-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.album-modal.on{display:flex}
+.album-modal-box{background:#1a1a2e;border:1px solid var(--line);border-radius:20px;padding:28px;width:90%;max-width:340px;display:flex;flex-direction:column;gap:14px}
+.album-modal-box h3{font-family:var(--font-display);font-size:18px;text-transform:uppercase;color:var(--gold)}
+.album-modal-box input{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:12px 16px;border-radius:12px;font-size:15px;font-family:inherit;outline:none}
+.album-modal-box input:focus{border-color:var(--gold)}
+.album-modal-btns{display:flex;gap:10px}
+.album-modal-btns button{flex:1;padding:12px;border-radius:12px;border:none;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px}
+.btn-cancel-album{background:rgba(255,255,255,.07);color:#fff;cursor:pointer}
+.btn-confirm-album{background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000}
 /* Landing */
 #landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:40px 24px;}
 .landing-ball{font-size:80px;margin-bottom:24px;animation:bounce 2s infinite}
@@ -247,6 +299,10 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </nav>
 
 <div id="page-collection" class="page on">
+<!-- Barre albums -->
+<div class="album-bar" id="albumBar">
+  <div class="loading" style="padding:4px;font-size:11px">Chargement…</div>
+</div>
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
@@ -308,8 +364,20 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 </div>
 
+<!-- Modal nouvel album -->
+<div class="album-modal" id="albumModal">
+  <div class="album-modal-box">
+    <h3>Nouvel album</h3>
+    <input type="text" id="albumNameInput" placeholder="Nom de l'album (ex: Album de Léa)" maxlength="30">
+    <div class="album-modal-btns">
+      <button class="btn-cancel-album" onclick="closeAlbumModal()">Annuler</button>
+      <button class="btn-confirm-album" onclick="confirmCreateAlbum()">Créer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
-<div class="version">v1.7</div>
+<div class="version">v1.8</div>
 
 <script>
 const PLAYERS={};
@@ -331,21 +399,120 @@ const PER=20, SPECIAL=20;
 let state={};
 let filter="all", q="";
 const openTeams=new Set();
+// Multi-albums
+let albums = {};        // { albumId: { name, collection } }
+let currentAlbumId = null;
+let isPremium = false;
+const MAX_ALBUMS_FREE = 1;
+const MAX_ALBUMS_PREMIUM = 5;
+
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._);t._=setTimeout(()=>t.classList.remove("show"),1400)};
 window._toast=toast;
 window._cloudState={};
 
-// Firebase appelle _applyCloud pour mettre à jour l'état
 window._applyCloud=function(data){
   state=data||{};
   window._cloudState=state;
   render();
 };
 
+// Callback Firebase quand les albums sont chargés
+window._onAlbumsLoaded = function(data) {
+  albums = data || {};
+  // Sélectionner le premier album par défaut
+  const ids = Object.keys(albums);
+  if (ids.length > 0) {
+    currentAlbumId = ids[0];
+    state = albums[currentAlbumId].collection || {};
+  } else {
+    state = {};
+  }
+  window._cloudState = state;
+  // Vérifier premium
+  window._checkPremium && window._checkPremium().then(p => {
+    isPremium = p;
+    renderAlbumBar();
+    render();
+    if (Object.keys(state).length > 0) toast('Collection chargée ☁️');
+  });
+};
+
+function renderAlbumBar() {
+  const bar = $('albumBar');
+  const ids = Object.keys(albums);
+  const maxAlbums = isPremium ? MAX_ALBUMS_PREMIUM : MAX_ALBUMS_FREE;
+  let html = '';
+  ids.forEach(id => {
+    const name = albums[id].name || 'Album';
+    const isActive = id === currentAlbumId;
+    const canDelete = ids.length > 1;
+    html += `<div class="album-chip ${isActive?'on':''}" onclick="selectAlbum('${id}')">
+      ${name}
+      ${canDelete ? `<span class="del" onclick="event.stopPropagation();deleteAlbum('${id}')">×</span>` : ''}
+    </div>`;
+  });
+  const canAdd = ids.length < maxAlbums;
+  html += `<button class="btn-add-album" onclick="openAlbumModal()" ${!isPremium&&ids.length>=1?'title="Premium requis"':''} ${!canAdd?'disabled':''}>+</button>`;
+  if (!isPremium && ids.length >= 1) {
+    html += `<span style="font-family:var(--font-cond);font-size:11px;opacity:.4;white-space:nowrap;flex-shrink:0">⭐ Premium pour +d'albums</span>`;
+  }
+  bar.innerHTML = html;
+}
+
+function selectAlbum(id) {
+  currentAlbumId = id;
+  state = albums[id].collection || {};
+  window._cloudState = state;
+  renderAlbumBar();
+  render();
+  toast('Album : ' + albums[id].name);
+}
+
+function openAlbumModal() {
+  if (!isPremium && Object.keys(albums).length >= MAX_ALBUMS_FREE) {
+    toast('⭐ Fonctionnalité Premium');
+    return;
+  }
+  $('albumNameInput').value = '';
+  $('albumModal').classList.add('on');
+  setTimeout(() => $('albumNameInput').focus(), 100);
+}
+function closeAlbumModal() { $('albumModal').classList.remove('on'); }
+function confirmCreateAlbum() {
+  const name = $('albumNameInput').value.trim();
+  if (!name) { $('albumNameInput').focus(); return; }
+  if (Object.keys(albums).length >= MAX_ALBUMS_PREMIUM) { toast('Maximum 5 albums atteint'); return; }
+  window._createAlbum && window._createAlbum(name).then(newId => {
+    albums[newId] = { name, collection: {} };
+    currentAlbumId = newId;
+    state = {};
+    window._cloudState = {};
+    closeAlbumModal();
+    renderAlbumBar();
+    render();
+    toast('Album créé ✓');
+  });
+}
+function deleteAlbum(id) {
+  if (Object.keys(albums).length <= 1) { toast('Impossible de supprimer le dernier album'); return; }
+  if (!confirm(`Supprimer l'album "${albums[id].name}" ?`)) return;
+  window._deleteAlbum && window._deleteAlbum(id).then(() => {
+    delete albums[id];
+    const ids = Object.keys(albums);
+    currentAlbumId = ids[0];
+    state = albums[currentAlbumId].collection || {};
+    window._cloudState = state;
+    renderAlbumBar();
+    render();
+    toast('Album supprimé');
+  });
+}
+
 function save(){
-  window._cloudState=state;
-  if(window._cloudSave) window._cloudSave(state);
+  window._cloudState = state;
+  if (albums[currentAlbumId]) albums[currentAlbumId].collection = state;
+  if(window._cloudSave) window._cloudSave(currentAlbumId, state);
 }
 
 function totals(){
