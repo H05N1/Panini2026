@@ -368,7 +368,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <!-- Modal nouvel album -->
-<div class="album-modal" id="albumModal">
+<div class="album-modal" id="albumModal" style="display:none">
   <div class="album-modal-box">
     <h3>Nouvel album</h3>
     <input type="text" id="albumNameInput" placeholder="Nom de l'album (ex: Album de Léa)" maxlength="30">
@@ -478,10 +478,10 @@ function openAlbumModal() {
     return;
   }
   $('albumNameInput').value = '';
-  $('albumModal').classList.add('on');
+  $('albumModal').style.display = 'flex';
   setTimeout(() => $('albumNameInput').focus(), 100);
 }
-function closeAlbumModal() { $('albumModal').classList.remove('on'); }
+function closeAlbumModal() { $('albumModal').style.display = 'none'; }
 function confirmCreateAlbum() {
   const name = $('albumNameInput').value.trim();
   if (!name) { $('albumNameInput').focus(); return; }
