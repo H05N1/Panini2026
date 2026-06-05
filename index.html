@@ -68,8 +68,13 @@ onAuthStateChanged(auth, user => {
     onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
       const data = snap.val();
       if (data && typeof data === 'object') {
-        window._state = data;
-        if (window._render) window._render();
+        // Mettre à jour le state local ET re-sauvegarder en localStorage
+        if (window._loadCloud) {
+          window._loadCloud(data);
+        } else {
+          window._state = data;
+          if (window._render) window._render();
+        }
         window._toast('Collection chargée ☁️');
       }
     }, { onlyOnce: true });
@@ -317,12 +322,17 @@ function load(){
   try{
     const r=localStorage.getItem(KEY);
     state=r?JSON.parse(r):{};
-    // Si Firebase a chargé une collection avant load(), elle est dans _state
-    if(window._state && Object.keys(window._state).length > 0) state = window._state;
   }catch(e){state={}}
   window._state = state;
   window._render = render;
   window._toast = toast;
+  // Fonction pour charger depuis Firebase et mettre à jour le vrai state
+  window._loadCloud = function(data) {
+    state = data;
+    window._state = state;
+    try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+    render();
+  };
   render();
 }
 function save(){
