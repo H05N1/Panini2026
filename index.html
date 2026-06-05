@@ -11,104 +11,104 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
-<title>Panini World Cup 2026 — Collection</title>
+<title>Panini World Cup 2026</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, set, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8u3tNXXINavWMQW25f4eZA361Rxz_AeY",
+  authDomain: "mondial-panini-2026.firebaseapp.com",
+  databaseURL: "https://mondial-panini-2026-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mondial-panini-2026",
+  storageBucket: "mondial-panini-2026.firebasestorage.app",
+  messagingSenderId: "820063287049",
+  appId: "1:820063287049:web:e2724139dd7b30c47585d8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+let currentUser = null;
+let syncTimer = null;
+
+window._cloudSave = (data) => {
+  if (!currentUser) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => set(ref(db, 'users/'+currentUser.uid+'/collection'), data), 800);
+};
+
+window._loginGoogle = () => new GoogleAuthProvider() |> (p => signInWithPopup(auth, p).catch(e => window._authErr && window._authErr(e.code)));
+window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
+window._loginEmail = (email,pass) => signInWithEmailAndPassword(auth,email,pass).catch(e=>window._authErr&&window._authErr(e.code));
+window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth,email,pass).then(c=>updateProfile(c.user,{displayName:name})).catch(e=>window._authErr&&window._authErr(e.code));
+window._logout = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  const landing = document.getElementById('landing');
+  const appDiv  = document.getElementById('app');
+  if (user) {
+    currentUser = user;
+    window._currentUser = user;
+    // 1. Vider immédiatement
+    window._cloudState = {};
+    if (window._applyCloud) window._applyCloud({});
+    // 2. Afficher l'app
+    landing.style.display = 'none';
+    appDiv.classList.add('visible');
+    // 3. Charger depuis Firebase
+    onValue(ref(db,'users/'+user.uid+'/collection'), snap => {
+      const data = snap.val();
+      const d = (data && typeof data==='object') ? data : {};
+      window._cloudState = d;
+      if (window._applyCloud) window._applyCloud(d);
+      if (Object.keys(d).length > 0 && window._toast) window._toast('Collection chargée ☁️');
+    }, { onlyOnce: true });
+  } else {
+    currentUser = null;
+    window._currentUser = null;
+    window._cloudState = {};
+    if (window._applyCloud) window._applyCloud({});
+    landing.style.display = 'flex';
+    appDiv.classList.remove('visible');
+  }
+});
+</script>
 <style>
-/* Polices système — aucun téléchargement, rendu instantané même hors-ligne */
 :root{
   --font-display:'Arial Black','Helvetica Neue',Impact,sans-serif;
   --font-cond:'Arial Narrow','Helvetica Neue',Arial,sans-serif;
   --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-  --gold:#FFB200;
-  --red:#D7263D;
-  --green:#00A878;
-  --blue:#0047FF;
-  --ink:#0C0C14;
-  --paper:#F4F1E8;
-  --line:rgba(255,255,255,.08);
+  --gold:#FFB200;--red:#D7263D;--green:#00A878;--blue:#0047FF;
+  --ink:#0C0C14;--paper:#F4F1E8;--line:rgba(255,255,255,.08);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{
-  font-family:var(--font-body);
-  background:
-    radial-gradient(circle at 15% 0%, rgba(0,71,255,.18), transparent 45%),
-    radial-gradient(circle at 85% 100%, rgba(215,38,61,.18), transparent 45%),
-    var(--ink);
-  color:var(--paper);
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-}
+body{font-family:var(--font-body);background:radial-gradient(circle at 15% 0%,rgba(0,71,255,.18),transparent 45%),radial-gradient(circle at 85% 100%,rgba(215,38,61,.18),transparent 45%),var(--ink);color:var(--paper);min-height:100vh;-webkit-font-smoothing:antialiased;}
 .wrap{max-width:1100px;margin:0 auto;padding:0 16px 80px}
-
-header{
-  text-align:center;
-  padding:36px 0 22px;
-  position:sticky;top:0;z-index:50;
-  background:linear-gradient(180deg, var(--ink) 70%, transparent);
-  backdrop-filter:blur(2px);
-}
-.kicker{
-  font-family:var(--font-cond);
-  letter-spacing:.4em;font-size:12px;color:var(--gold);
-  text-transform:uppercase;margin-bottom:4px;
-}
-h1{
-  font-family:var(--font-display);
-  font-size:clamp(34px,8vw,72px);
-  line-height:.9;text-transform:uppercase;
-  background:linear-gradient(180deg,#fff,#9aa3b2);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  letter-spacing:.01em;
-}
+header{text-align:center;padding:36px 0 22px;position:sticky;top:48px;z-index:50;background:linear-gradient(180deg,var(--ink) 70%,transparent);backdrop-filter:blur(2px);}
+.kicker{font-family:var(--font-cond);letter-spacing:.4em;font-size:12px;color:var(--gold);text-transform:uppercase;margin-bottom:4px;}
+h1{font-family:var(--font-display);font-size:clamp(34px,8vw,72px);line-height:.9;text-transform:uppercase;background:linear-gradient(180deg,#fff,#9aa3b2);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.01em;}
 h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
-
-.stats{
-  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
-  margin-top:16px;
-}
-.stat{
-  background:rgba(255,255,255,.04);border:1px solid var(--line);
-  border-radius:14px;padding:10px 18px;min-width:96px;
-}
-.stat b{
-  display:block;font-family:var(--font-display);font-size:26px;line-height:1;
-  color:var(--gold);
-}
+.stats{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+.stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:10px 18px;min-width:96px;}
+.stat b{display:block;font-family:var(--font-display);font-size:26px;line-height:1;color:var(--gold);}
 .stat small{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.15em;font-size:10px;opacity:.7}
-
-.bar{
-  height:10px;background:rgba(255,255,255,.06);border-radius:99px;
-  margin:18px auto 0;max-width:520px;overflow:hidden;
-}
+.bar{height:10px;background:rgba(255,255,255,.06);border-radius:99px;margin:18px auto 0;max-width:520px;overflow:hidden;}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--gold));width:0;transition:width .5s}
-
-.controls{
-  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-  margin:26px 0 18px;
-}
-.controls input{
-  flex:1;min-width:200px;
-  background:rgba(255,255,255,.05);border:1px solid var(--line);
-  color:#fff;padding:12px 16px;border-radius:12px;font-size:15px;font-family:inherit;
-}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:26px 0 18px;}
+.controls input{flex:1;min-width:200px;background:rgba(255,255,255,.05);border:1px solid var(--line);color:#fff;padding:12px 16px;border-radius:12px;font-size:15px;font-family:inherit;}
 .controls input::placeholder{color:rgba(255,255,255,.4)}
 .seg{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.seg button{
-  background:none;border:none;color:rgba(255,255,255,.6);
-  padding:10px 16px;cursor:pointer;font-family:var(--font-cond);
-  text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;
-}
+.seg button{background:none;border:none;color:rgba(255,255,255,.6);padding:10px 16px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13px;}
 .seg button.on{background:var(--gold);color:#000}
-
 .teams{display:grid;gap:14px}
-.team{
-  background:rgba(255,255,255,.03);border:1px solid var(--line);
-  border-radius:18px;overflow:hidden;
-}
-.team summary{
-  list-style:none;cursor:pointer;
-  display:flex;align-items:center;gap:14px;padding:16px 18px;
-}
+.team{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:18px;overflow:hidden;}
+.team summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px 18px;}
 .team summary::-webkit-details-marker{display:none}
 .flag{font-size:30px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
 .tname{font-family:var(--font-cond);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.02em;flex:1}
@@ -122,43 +122,109 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .tbar i{display:block;height:100%;background:var(--green)}
 .chev{transition:transform .25s;opacity:.5}
 .team[open] .chev{transform:rotate(180deg)}
-
-.grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));
-  gap:8px;padding:6px 18px 20px;
-}
-.cell{
-  aspect-ratio:3/4;border-radius:10px;cursor:pointer;
-  border:1px solid var(--line);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;position:relative;
-  background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 6px,transparent 6px 12px);
-  transition:transform .12s, box-shadow .2s;
-  user-select:none;
-}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;padding:6px 18px 20px;}
+.cell{aspect-ratio:3/4;border-radius:10px;cursor:pointer;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 6px,transparent 6px 12px);transition:transform .12s,box-shadow .2s;user-select:none;}
 .cell:active{transform:scale(.94)}
 .cell .num{font-family:var(--font-cond);font-weight:700;font-size:10px;letter-spacing:.02em;opacity:.5;white-space:nowrap}
 .cell.have .num,.cell.dup .num{opacity:.9}
 .cell .ic{font-size:18px;opacity:.25}
-.cell.have{
-  background:linear-gradient(155deg,var(--gold),#ff7a00);
-  border-color:var(--gold);
-  box-shadow:0 6px 18px rgba(255,178,0,.35);
-}
+.cell.have{background:linear-gradient(155deg,var(--gold),#ff7a00);border-color:var(--gold);box-shadow:0 6px 18px rgba(255,178,0,.35);}
 .cell.have .num{color:#000;opacity:.85}
 .cell.have .ic{opacity:1;font-size:20px}
 .cell.have::after{content:"✓";position:absolute;top:3px;right:5px;font-size:11px;font-weight:800;color:#000}
 .cell.dup{background:linear-gradient(155deg,var(--green),#007a55);border-color:var(--green);box-shadow:0 6px 18px rgba(0,168,120,.3)}
 .cell.dup::after{content:attr(data-d);top:2px;right:5px;color:#fff;font-family:var(--font-display);font-size:12px}
-
 .hint{font-size:12px;opacity:.5;text-align:center;margin-top:8px;font-family:var(--font-cond);letter-spacing:.05em}
 .reset{display:block;margin:30px auto 0;background:none;border:1px solid var(--red);color:var(--red);padding:8px 18px;border-radius:10px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px}
 .loading{text-align:center;padding:60px;opacity:.5;font-family:var(--font-cond);letter-spacing:.2em;text-transform:uppercase}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:#000;padding:10px 22px;border-radius:99px;font-weight:600;font-family:var(--font-cond);letter-spacing:.08em;text-transform:uppercase;font-size:13px;transition:transform .3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0)}
+/* Landing */
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:40px 24px;}
+.landing-ball{font-size:80px;margin-bottom:24px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.landing-title{font-family:var(--font-display);font-size:clamp(48px,12vw,96px);line-height:.9;text-transform:uppercase;background:linear-gradient(180deg,#fff,#9aa3b2);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;}
+.landing-title span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
+.landing-sub{font-family:var(--font-cond);letter-spacing:.3em;font-size:13px;color:var(--gold);text-transform:uppercase;margin-bottom:32px;opacity:.85;}
+.ltabs{display:flex;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:24px;width:100%;max-width:320px}
+.ltab{flex:1;background:none;border:none;color:rgba(255,255,255,.5);padding:12px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:all .2s}
+.ltab.on{background:var(--gold);color:#000}
+.lform{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px}
+.lform input{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:14px 16px;border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border .2s}
+.lform input:focus{border-color:var(--gold)}
+.lform input::placeholder{color:rgba(255,255,255,.35)}
+.btn-sub{background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;padding:16px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(255,178,0,.3);transition:transform .15s}
+.btn-sub:active{transform:scale(.98)}
+.adiv{display:flex;align-items:center;gap:12px;width:100%;max-width:320px;margin:4px 0}
+.adiv::before,.adiv::after{content:"";flex:1;height:1px;background:var(--line)}
+.adiv span{font-family:var(--font-cond);font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.1em}
+.aerr{color:var(--red);font-size:12px;font-family:var(--font-cond);text-align:center;min-height:16px}
+.btn-google{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-family:var(--font-cond);font-size:14px;text-transform:uppercase;letter-spacing:.08em;padding:14px 28px;border-radius:12px;cursor:pointer;transition:background .2s;width:100%;max-width:320px;justify-content:center;}
+.btn-google:hover{background:rgba(255,255,255,.14)}
+.landing-note{margin-top:20px;font-size:12px;opacity:.35;font-family:var(--font-cond);letter-spacing:.1em}
+/* App */
+#app{display:none}
+#app.visible{display:block}
+.nav-tabs{display:flex;background:rgba(255,255,255,.04);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:49;}
+.nav-tab{flex:1;background:none;border:none;color:rgba(255,255,255,.5);padding:14px 8px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;border-bottom:2px solid transparent;transition:all .2s;}
+.nav-tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+.page{display:none}.page.on{display:block}
+/* Profil */
+.profile-wrap{max-width:480px;margin:0 auto;padding:32px 16px 80px}
+.avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#ff7a00);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;box-shadow:0 6px 24px rgba(255,178,0,.35);}
+.profile-name{font-family:var(--font-display);font-size:24px;text-align:center;text-transform:uppercase;margin-bottom:4px}
+.profile-email{text-align:center;opacity:.5;font-size:13px;font-family:var(--font-cond);letter-spacing:.05em;margin-bottom:24px}
+.badge-free{background:rgba(255,255,255,.07);border:1px solid var(--line);color:rgba(255,255,255,.6);font-family:var(--font-cond);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 14px;border-radius:99px;display:block;width:fit-content;margin:0 auto 32px}
+.profile-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+.profile-card h3{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.15em;font-size:11px;opacity:.5;margin-bottom:16px}
+.profile-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.profile-row:last-child{border-bottom:none}
+.profile-row span:first-child{font-family:var(--font-cond);font-size:13px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}
+.profile-row span:last-child{font-family:var(--font-cond);font-size:14px;font-weight:700;color:var(--gold)}
+.btn-premium{width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 6px 24px rgba(255,178,0,.3);margin-bottom:12px;}
+.btn-premium:disabled{opacity:.4;cursor:not-allowed}
+.btn-logout{width:100%;padding:12px;border-radius:14px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}
+.version{position:fixed;bottom:4px;right:8px;font-size:10px;opacity:.25;font-family:var(--font-cond);pointer-events:none}
 </style>
 </head>
 <body>
+
+<div id="landing">
+  <div class="landing-ball">⚽</div>
+  <div class="landing-title">Panini <span>2026</span></div>
+  <div class="landing-sub">FIFA World Cup • USA · Canada · Mexico</div>
+  <div class="ltabs">
+    <button class="ltab on" onclick="switchTab('login')">Connexion</button>
+    <button class="ltab" onclick="switchTab('register')">Inscription</button>
+  </div>
+  <div class="lform" id="formLogin">
+    <input type="email" id="loginEmail" placeholder="Adresse email" autocomplete="email">
+    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="aerr" id="loginErr"></div>
+    <button class="btn-sub" onclick="doLogin()">Se connecter</button>
+  </div>
+  <div class="lform" id="formRegister" style="display:none">
+    <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
+    <input type="email" id="regEmail" placeholder="Adresse email" autocomplete="email">
+    <input type="password" id="regPassword" placeholder="Mot de passe (6 car. min)" autocomplete="new-password">
+    <div class="aerr" id="registerErr"></div>
+    <button class="btn-sub" onclick="doRegister()">Créer mon compte</button>
+  </div>
+  <div class="adiv"><span>ou</span></div>
+  <button class="btn-google" onclick="window._loginGoogle&&window._loginGoogle()">
+    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+    Continuer avec Google
+  </button>
+  <div class="landing-note">Collection sauvegardée dans le cloud · Accessible partout</div>
+</div>
+
+<div id="app">
+<nav class="nav-tabs">
+  <button class="nav-tab on" data-page="collection">⚽ Collection</button>
+  <button class="nav-tab" data-page="profil">👤 Profil</button>
+</nav>
+
+<div id="page-collection" class="page on">
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
@@ -171,7 +237,6 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   </div>
   <div class="bar"><i id="bar"></i></div>
 </header>
-
 <div class="controls">
   <input id="search" placeholder="Rechercher une équipe…">
   <div class="seg">
@@ -180,73 +245,81 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
     <button data-f="dup">Doublons</button>
   </div>
 </div>
-
-<div id="teams" class="teams"><div class="loading">Chargement de la collection…</div></div>
+<div id="teams" class="teams"><div class="loading">Connexion en cours…</div></div>
 <div class="hint">980 stickers • Tap = j'ai • re-tap = doublon (+1) • long press = retirer</div>
 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px">
-<button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Liste des manquants (PDF)</button>
-<button class="reset" id="export" style="border-color:var(--green);color:var(--green)">Exporter ma collection</button>
-<button class="reset" id="import" style="border-color:var(--blue);color:#5b86ff">Importer</button>
-<button class="reset" id="reset">Réinitialiser</button>
+  <button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Manquants PDF</button>
+  <button class="reset" id="export" style="border-color:var(--green);color:var(--green)">Exporter</button>
+  <button class="reset" id="import" style="border-color:var(--blue);color:#5b86ff">Importer</button>
+  <button class="reset" id="reset">Réinitialiser</button>
 </div>
 <input type="file" id="file" accept="application/json" style="display:none">
 </div>
+</div>
+
+<div id="page-profil" class="page">
+<div class="profile-wrap">
+  <div class="avatar" id="profileAvatar">👤</div>
+  <div class="profile-name" id="profileName">—</div>
+  <div class="profile-email" id="profileEmail">—</div>
+  <div class="badge-free">FREE</div>
+  <div class="profile-card">
+    <h3>Ma collection</h3>
+    <div class="profile-row"><span>Collés</span><span id="pHave">0</span></div>
+    <div class="profile-row"><span>Manquants</span><span id="pMiss">0</span></div>
+    <div class="profile-row"><span>Doublons</span><span id="pDup">0</span></div>
+    <div class="profile-row"><span>Progression</span><span id="pPct">0%</span></div>
+  </div>
+  <div class="profile-card">
+    <h3>Mon compte</h3>
+    <div class="profile-row"><span>Statut</span><span>FREE</span></div>
+    <div class="profile-row"><span>Connexion</span><span id="pProvider">—</span></div>
+    <div class="profile-row"><span>Membre depuis</span><span id="pSince">—</span></div>
+  </div>
+  <button class="btn-premium" disabled>⭐ Passer Premium — Bientôt disponible</button>
+  <button class="btn-logout" onclick="window._logout&&window._logout()">Déconnexion</button>
+</div>
+</div>
+</div>
+
 <div class="toast" id="toast"></div>
+<div class="version">v1.4</div>
 
 <script>
-// 48 équipes WC 2026 — logo équipe + 17 joueurs = 18 stickers/équipe
-// Noms des joueurs par abréviation (18 max par équipe, ordre album).
-// Rempli progressivement — case numérotée si nom absent.
 const PLAYERS={};
-
-// 48 équipes dans l'ordre des groupes A→L (= ordre album Panini 2026)
-// [drapeau, nom FR, abréviation FIFA 3 lettres, groupe]
 const TEAMS=[
- // Groupe A
  ["🇲🇽","Mexique","MEX","A"],["🇿🇦","Afrique du Sud","RSA","A"],["🇰🇷","Corée du Sud","KOR","A"],["🇨🇿","République tchèque","CZE","A"],
- // Groupe B
  ["🇨🇦","Canada","CAN","B"],["🇧🇦","Bosnie-Herzégovine","BIH","B"],["🇶🇦","Qatar","QAT","B"],["🇨🇭","Suisse","SUI","B"],
- // Groupe C
  ["🇧🇷","Brésil","BRA","C"],["🇲🇦","Maroc","MAR","C"],["🇭🇹","Haïti","HAI","C"],["🏴󠁧󠁢󠁳󠁣󠁴󠁿","Écosse","SCO","C"],
- // Groupe D
  ["🇺🇸","États-Unis","USA","D"],["🇵🇾","Paraguay","PAR","D"],["🇦🇺","Australie","AUS","D"],["🇹🇷","Turquie","TUR","D"],
- // Groupe E
  ["🇩🇪","Allemagne","GER","E"],["🇨🇼","Curaçao","CUW","E"],["🇨🇮","Côte d'Ivoire","CIV","E"],["🇪🇨","Équateur","ECU","E"],
- // Groupe F
  ["🇳🇱","Pays-Bas","NED","F"],["🇯🇵","Japon","JPN","F"],["🇸🇪","Suède","SWE","F"],["🇹🇳","Tunisie","TUN","F"],
- // Groupe G
  ["🇧🇪","Belgique","BEL","G"],["🇪🇬","Égypte","EGY","G"],["🇮🇷","Iran","IRN","G"],["🇳🇿","Nouvelle-Zélande","NZL","G"],
- // Groupe H
  ["🇪🇸","Espagne","ESP","H"],["🇨🇻","Cap-Vert","CPV","H"],["🇸🇦","Arabie saoudite","KSA","H"],["🇺🇾","Uruguay","URU","H"],
- // Groupe I
  ["🇫🇷","France","FRA","I"],["🇸🇳","Sénégal","SEN","I"],["🇮🇶","Irak","IRQ","I"],["🇳🇴","Norvège","NOR","I"],
- // Groupe J
  ["🇦🇷","Argentine","ARG","J"],["🇩🇿","Algérie","ALG","J"],["🇦🇹","Autriche","AUT","J"],["🇯🇴","Jordanie","JOR","J"],
- // Groupe K
  ["🇵🇹","Portugal","POR","K"],["🇨🇩","RD Congo","COD","K"],["🇺🇿","Ouzbékistan","UZB","K"],["🇨🇴","Colombie","COL","K"],
- // Groupe L
  ["🏴󠁧󠁢󠁥󠁮󠁧󠁿","Angleterre","ENG","L"],["🇭🇷","Croatie","CRO","L"],["🇬🇭","Ghana","GHA","L"],["🇵🇦","Panama","PAN","L"]
 ];
-const PER=20; // 1 badge + 1 photo équipe + 18 joueurs
-const SPECIAL=20; // section finale: intro, FIFA Museum, mascottes, emblèmes
-const KEY="panini_wc2026_v3";
-let state={};       // index -> count
-let filter="all";
-let q="";
-const openTeams=new Set();   // indices des équipes dont le panneau est ouvert
-
+const PER=20, SPECIAL=20;
+let state={};
+let filter="all", q="";
+const openTeams=new Set();
 const $=id=>document.getElementById(id);
-const toast=(m)=>{const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._);t._=setTimeout(()=>t.classList.remove("show"),1400)};
+const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._);t._=setTimeout(()=>t.classList.remove("show"),1400)};
+window._toast=toast;
+window._cloudState={};
 
-function load(){
-  try{
-    const r=localStorage.getItem(KEY);
-    state=r?JSON.parse(r):{};
-  }catch(e){state={}}
+// Firebase appelle _applyCloud pour mettre à jour l'état
+window._applyCloud=function(data){
+  state=data||{};
+  window._cloudState=state;
   render();
-}
+};
+
 function save(){
-  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){console.error(e)}
+  window._cloudState=state;
+  if(window._cloudSave) window._cloudSave(state);
 }
 
 function totals(){
@@ -267,150 +340,83 @@ function remove(i){
 }
 
 function render(){
-  // Synchroniser depuis window._state (mis à jour par Firebase)
-  state = window._state || {};
   const t=totals();
-  $("sHave").textContent=t.have;
-  $("sTotal").textContent=t.total;
-  $("sMiss").textContent=t.miss;
-  $("sDup").textContent=t.dup;
+  $("sHave").textContent=t.have;$("sTotal").textContent=t.total;
+  $("sMiss").textContent=t.miss;$("sDup").textContent=t.dup;
   $("bar").style.width=(t.have/t.total*100)+"%";
-
   const wrap=$("teams");wrap.innerHTML="";
   TEAMS.forEach((tm,ti)=>{
-    const abbr=tm[2], grp=tm[3];
-    if(q && !tm[1].toLowerCase().includes(q) && !abbr.toLowerCase().includes(q) && !("groupe "+grp.toLowerCase()).includes(q))return;
-    const base=ti*PER;
-    const roster=PLAYERS[abbr]||[];
-    let have=0,cells="";
-    let visibleAny=false;
+    const abbr=tm[2],grp=tm[3];
+    if(q&&!tm[1].toLowerCase().includes(q)&&!abbr.toLowerCase().includes(q)&&!("groupe "+grp.toLowerCase()).includes(q))return;
+    const base=ti*PER,roster=PLAYERS[abbr]||[];
+    let have=0,cells="",visibleAny=false;
     for(let s=0;s<PER;s++){
-      const idx=base+s;
-      const c=state[idx]||0;
+      const idx=base+s,c=state[idx]||0;
       if(c>0)have++;
       let cls="cell",extra="";
-      if(c===1)cls+=" have";
-      else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
-      if(filter==="miss" && c>0)continue;
-      if(filter==="dup" && c<2)continue;
+      if(c===1)cls+=" have";else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
+      if(filter==="miss"&&c>0)continue;if(filter==="dup"&&c<2)continue;
       visibleAny=true;
-      // Numéro d'étiquette 1..20 par équipe, préfixé du code pays (ex. MEX 1)
-      const stickerNo=s+1;
-      const code=`${abbr} ${stickerNo}`;
+      const code=`${abbr} ${s+1}`;
       let ic,name="";
-      if(s===0){ic="🛡️";}
-      else if(s===1){ic="📸";}
-      else{ic="⚽";name=roster[s-2]||"";}
-      const nameHtml=name?`<span class="pname">${name}</span>`:"";
-      cells+=`<div class="${cls}" ${extra} data-i="${idx}" title="${code}${name?' — '+name:''}">
-        <span class="ic">${ic}</span><span class="num">${code}</span>${nameHtml}</div>`;
+      if(s===0)ic="🛡️";else if(s===1)ic="📸";else{ic="⚽";name=roster[s-2]||"";}
+      cells+=`<div class="${cls}" ${extra} data-i="${idx}" title="${code}${name?' — '+name:''}"><span class="ic">${ic}</span><span class="num">${code}</span>${name?`<span class="pname">${name}</span>`:""}</div>`;
     }
-    if((filter==="miss"||filter==="dup") && !visibleAny)return;
-    const pct=Math.round(have/PER*100);
-    const d=document.createElement("details");
-    d.className="team";
+    if((filter==="miss"||filter==="dup")&&!visibleAny)return;
+    const d=document.createElement("details");d.className="team";
     if(q||filter!=="all"||openTeams.has(ti))d.open=true;
     d.dataset.team=ti;
-    d.innerHTML=`<summary>
-        <span class="flag">${tm[0]}</span>
-        <span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span>
-        <span class="grp">Gr. ${grp}</span>
-        <span class="tprog">${have}/${PER}</span>
-        <span class="tbar"><i style="width:${pct}%"></i></span>
-        <span class="chev">▾</span>
-      </summary>
-      <div class="grid">${cells}</div>`;
+    d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
     wrap.appendChild(d);
   });
-
-  // Section spéciale (intro, FIFA Museum, mascottes, emblèmes, foil)
-  if(!q || "spéciaux speciaux special intro fifa museum mascottes".includes(q)){
-    const sbase=TEAMS.length*PER;
-    let have=0,cells="",visibleAny=false;
+  if(!q||"spéciaux speciaux special".includes(q)){
+    const sbase=TEAMS.length*PER;let have=0,cells="",visibleAny=false;
     for(let s=0;s<SPECIAL;s++){
-      const idx=sbase+s;
-      const c=state[idx]||0;
-      if(c>0)have++;
+      const idx=sbase+s,c=state[idx]||0;if(c>0)have++;
       let cls="cell",extra="";
-      if(c===1)cls+=" have";
-      else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
-      if(filter==="miss" && c>0)continue;
-      if(filter==="dup" && c<2)continue;
+      if(c===1)cls+=" have";else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
+      if(filter==="miss"&&c>0)continue;if(filter==="dup"&&c<2)continue;
       visibleAny=true;
-      cells+=`<div class="${cls}" ${extra} data-i="${idx}">
-        <span class="ic">⭐</span><span class="num">${s+1}</span></div>`;
+      cells+=`<div class="${cls}" ${extra} data-i="${idx}"><span class="ic">⭐</span><span class="num">${s+1}</span></div>`;
     }
-    if(!((filter==="miss"||filter==="dup") && !visibleAny)){
-      const pct=Math.round(have/SPECIAL*100);
-      const d=document.createElement("details");
-      d.className="team";
-      if(q||filter!=="all"||openTeams.has("S"))d.open=true;
-      d.dataset.team="S";
-      d.innerHTML=`<summary>
-          <span class="flag">⭐</span>
-          <span class="tname">Spéciaux & Histoire</span>
-          <span class="tprog">${have}/${SPECIAL}</span>
-          <span class="tbar"><i style="width:${pct}%"></i></span>
-          <span class="chev">▾</span>
-        </summary>
-        <div class="grid">${cells}</div>`;
+    if(!((filter==="miss"||filter==="dup")&&!visibleAny)){
+      const d=document.createElement("details");d.className="team";
+      if(q||filter!=="all"||openTeams.has("S"))d.open=true;d.dataset.team="S";
+      d.innerHTML=`<summary><span class="flag">⭐</span><span class="tname">Spéciaux & Histoire</span><span class="tprog">${have}/${SPECIAL}</span><span class="tbar"><i style="width:${Math.round(have/SPECIAL*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
       wrap.appendChild(d);
     }
   }
-
   if(!wrap.children.length)wrap.innerHTML='<div class="loading">Aucun résultat</div>';
   bindCells();
 }
 
 function bindCells(){
   document.querySelectorAll(".cell").forEach(el=>{
-    const i=+el.dataset.i;
-    let timer;
+    const i=+el.dataset.i;let timer;
     el.onclick=()=>tap(i);
-    el.oncontextmenu=(e)=>{e.preventDefault();remove(i)};
+    el.oncontextmenu=e=>{e.preventDefault();remove(i)};
     el.ontouchstart=()=>{timer=setTimeout(()=>{remove(i);timer=null;},550)};
-    el.ontouchend=()=>{if(timer){clearTimeout(timer)}};
+    el.ontouchend=()=>{if(timer)clearTimeout(timer)};
     el.ontouchmove=()=>{if(timer){clearTimeout(timer);timer=null}};
   });
-  // Mémoriser quels panneaux sont ouverts pour les rouvrir après re-render
   document.querySelectorAll("details.team").forEach(d=>{
     const key=d.dataset.team==="S"?"S":+d.dataset.team;
-    d.addEventListener("toggle",()=>{
-      if(d.open)openTeams.add(key);else openTeams.delete(key);
-    });
+    d.addEventListener("toggle",()=>{if(d.open)openTeams.add(key);else openTeams.delete(key);});
   });
 }
 
 $("search").oninput=e=>{q=e.target.value.toLowerCase().trim();render()};
-document.querySelectorAll(".seg button").forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on");filter=b.dataset.f;render();
-  };
-});
-$("reset").onclick=()=>{
-  if(confirm("Effacer toute la collection ?")){state={};save();render();toast("Collection vidée");}
-};
+document.querySelectorAll(".seg button").forEach(b=>{b.onclick=()=>{document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");filter=b.dataset.f;render();};});
+$("reset").onclick=()=>{if(confirm("Effacer toute la collection ?")){state={};save();render();toast("Collection vidée");}};
 
-// ---- PDF liste des manquants ----
 function buildMissing(){
   const out=[];
   TEAMS.forEach((tm,ti)=>{
-    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[];
-    const base=ti*PER, miss=[];
-    for(let s=0;s<PER;s++){
-      if((state[base+s]||0)===0){
-        let lbl;
-        if(s===0)lbl="Badge";
-        else if(s===1)lbl="Photo équipe";
-        else lbl=(roster[s-2]?roster[s-2]:"Joueur "+(s-1));
-        miss.push((s+1)+". "+lbl); // n° d'autocollant relatif équipe
-      }
-    }
+    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[],base=ti*PER,miss=[];
+    for(let s=0;s<PER;s++){if((state[base+s]||0)===0){let lbl=s===0?"Badge":s===1?"Photo équipe":(roster[s-2]||"Joueur "+(s-1));miss.push((s+1)+". "+lbl);}}
     if(miss.length)out.push({titre:`${tm[1]} (${abbr}) — Groupe ${grp}`,miss});
   });
-  // section spéciale
-  const sbase=TEAMS.length*PER, sm=[];
+  const sbase=TEAMS.length*PER,sm=[];
   for(let s=0;s<SPECIAL;s++){if((state[sbase+s]||0)===0)sm.push((s+1)+". Spécial");}
   if(sm.length)out.push({titre:"Spéciaux & Histoire",miss:sm});
   return out;
@@ -418,77 +424,81 @@ function buildMissing(){
 
 $("pdf").onclick=()=>{
   if(!window.jspdf){toast("PDF indisponible hors-ligne 1ère fois");return;}
-  const groups=buildMissing();
-  const t=totals();
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:"mm",format:"a4"});
-  const W=210,M=14;let y=20;
-
-  const header=()=>{
-    doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");
-    doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);
-    doc.text("PANINI WORLD CUP 2026 — Liste des manquants",M,11);
-  };
-  header();
-  doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");doc.setFontSize(10);
-  doc.text(`Collés ${t.have}/${t.total} • Manquants ${t.miss} • Doublons ${t.dup} • ${new Date().toLocaleDateString("fr-BE")}`,M,y);
-  y+=8;
-
-  if(!groups.length){
-    doc.setFontSize(14);doc.setTextColor(0,150,80);
-    doc.text("🎉 Album complet, bravo Tonton !",M,y+10);
-  }
-
+  const groups=buildMissing(),t=totals(),{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"mm",format:"a4"});const W=210,M=14;let y=20;
+  const hdr=()=>{doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text("PANINI WORLD CUP 2026 — Liste des manquants",M,11);};
+  hdr();doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");doc.setFontSize(10);
+  doc.text(`Collés ${t.have}/${t.total} • Manquants ${t.miss} • Doublons ${t.dup} • ${new Date().toLocaleDateString("fr-BE")}`,M,y);y+=8;
+  if(!groups.length){doc.setFontSize(14);doc.setTextColor(0,150,80);doc.text("🎉 Album complet, bravo Tonton !",M,y+10);}
   groups.forEach(g=>{
-    if(y>275){doc.addPage();header();y=24;}
-    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(0,71,255);
-    doc.text(g.titre,M,y);
-    doc.setTextColor(150,150,150);doc.setFontSize(8);
-    doc.text(`${g.miss.length} manquant(s)`,W-M,y,{align:"right"});
-    y+=5;
+    if(y>275){doc.addPage();hdr();y=24;}
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(0,71,255);doc.text(g.titre,M,y);
+    doc.setTextColor(150,150,150);doc.setFontSize(8);doc.text(`${g.miss.length} manquant(s)`,W-M,y,{align:"right"});y+=5;
     doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(40,40,40);
-    // 3 colonnes
-    const col=(W-2*M)/3, perCol=Math.ceil(g.miss.length/3);
-    let maxRows=0;
-    for(let c=0;c<3;c++){
-      const slice=g.miss.slice(c*perCol,(c+1)*perCol);
-      maxRows=Math.max(maxRows,slice.length);
-      slice.forEach((line,r)=>{
-        if(y+r*4.6>286){/* débordement géré par hauteur calculée */}
-        doc.text(line.length>34?line.slice(0,33)+"…":line, M+c*col, y+r*4.6);
-      });
-    }
-    y+=maxRows*4.6+5;
-    doc.setDrawColor(230,230,230);doc.line(M,y-3,W-M,y-3);
+    const col=(W-2*M)/3,perCol=Math.ceil(g.miss.length/3);let maxRows=0;
+    for(let c=0;c<3;c++){const sl=g.miss.slice(c*perCol,(c+1)*perCol);maxRows=Math.max(maxRows,sl.length);sl.forEach((ln,r)=>doc.text(ln.length>34?ln.slice(0,33)+"…":ln,M+c*col,y+r*4.6));}
+    y+=maxRows*4.6+5;doc.setDrawColor(230,230,230);doc.line(M,y-3,W-M,y-3);
   });
-
-  doc.save("panini-manquants-"+new Date().toISOString().slice(0,10)+".pdf");
-  toast("PDF généré");
+  doc.save("panini-manquants-"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF généré");
 };
 
 $("export").onclick=()=>{
   const blob=new Blob([JSON.stringify(state)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="panini-wc2026-"+new Date().toISOString().slice(0,10)+".json";
-  a.click();URL.revokeObjectURL(a.href);
-  toast("Sauvegarde exportée");
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="panini-wc2026-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);toast("Sauvegarde exportée");
 };
 $("import").onclick=()=>$("file").click();
-$("file").onchange=e=>{
-  const f=e.target.files[0];if(!f)return;
-  const rd=new FileReader();
-  rd.onload=()=>{
-    try{const data=JSON.parse(rd.result);state=data;save();render();toast("Collection importée");}
-    catch(err){toast("Fichier invalide");}
-  };
-  rd.readAsText(f);
-};
+$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{state=JSON.parse(rd.result);save();render();toast("Collection importée");}catch(err){toast("Fichier invalide");}};rd.readAsText(f);};
 
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+// Navigation
+document.querySelectorAll(".nav-tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".nav-tab").forEach(t=>t.classList.remove("on"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+    tab.classList.add("on");document.getElementById("page-"+tab.dataset.page).classList.add("on");
+    if(tab.dataset.page==="profil")updateProfile();
+  };
+});
+
+function updateProfile(){
+  const t=totals(),pct=t.total>0?Math.round(t.have/t.total*100):0;
+  const el=id=>document.getElementById(id);
+  el("pHave").textContent=t.have;el("pMiss").textContent=t.miss;el("pDup").textContent=t.dup;el("pPct").textContent=pct+"%";
+  if(window._currentUser){
+    const u=window._currentUser;
+    el("profileName").textContent=u.displayName||"Utilisateur";
+    el("profileEmail").textContent=u.email||"";
+    el("profileAvatar").textContent=u.displayName?u.displayName[0].toUpperCase():"👤";
+    if(u.metadata&&u.metadata.creationTime){const d=new Date(u.metadata.creationTime);el("pSince").textContent=d.toLocaleDateString("fr-BE",{day:"numeric",month:"long",year:"numeric"});}
+    const prov=u.providerData[0]?.providerId||"";
+    el("pProvider").textContent=prov==="google.com"?"Google":prov==="password"?"Email":prov;
+  }
 }
-render(); // Firebase chargera les données via onAuthStateChanged
+
+// Auth forms
+const authErrors={'auth/invalid-email':'Email invalide','auth/user-not-found':'Aucun compte avec cet email','auth/wrong-password':'Mot de passe incorrect','auth/invalid-credential':'Email ou mot de passe incorrect','auth/email-already-in-use':'Cet email est déjà utilisé','auth/weak-password':'Mot de passe trop court (6 car. min)','auth/too-many-requests':'Trop de tentatives, réessaie plus tard'};
+window._authErr=code=>{const msg=authErrors[code]||'Erreur de connexion';const isLogin=document.getElementById('formLogin').style.display!=='none';document.getElementById(isLogin?'loginErr':'registerErr').textContent=msg;};
+
+function switchTab(tab){
+  document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('on',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('formLogin').style.display=tab==='login'?'flex':'none';
+  document.getElementById('formRegister').style.display=tab==='register'?'flex':'none';
+  document.getElementById('loginErr').textContent='';document.getElementById('registerErr').textContent='';
+}
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPassword').value;
+  document.getElementById('loginErr').textContent='';
+  if(!email||!pass){document.getElementById('loginErr').textContent='Remplis tous les champs';return;}
+  window._loginEmail&&window._loginEmail(email,pass);
+}
+function doRegister(){
+  const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPassword').value;
+  document.getElementById('registerErr').textContent='';
+  if(!name||!email||!pass){document.getElementById('registerErr').textContent='Remplis tous les champs';return;}
+  window._registerEmail&&window._registerEmail(name,email,pass);
+}
+
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+render();
 </script>
 </body>
 </html>
