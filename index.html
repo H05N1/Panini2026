@@ -46,7 +46,7 @@ window._cloudSave = (data) => {
 window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(auth,p).catch(e=>window._authErr&&window._authErr(e.code)); };
 window._loginEmail = (email,pass) => signInWithEmailAndPassword(auth,email,pass).catch(e=>window._authErr&&window._authErr(e.code));
 window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth,email,pass).then(c=>updateProfile(c.user,{displayName:name})).catch(e=>window._authErr&&window._authErr(e.code));
-window._logout = () => signOut(auth);
+window._logout = () => signOut(auth).then(() => window.location.reload());
 
 onAuthStateChanged(auth, user => {
   const landing = document.getElementById('landing');
