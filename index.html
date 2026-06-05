@@ -47,6 +47,7 @@ window._loginGoogle = () => { const p=new GoogleAuthProvider(); signInWithPopup(
 window._loginEmail = (email,pass) => signInWithEmailAndPassword(auth,email,pass).catch(e=>window._authErr&&window._authErr(e.code));
 window._registerEmail = (name,email,pass) => createUserWithEmailAndPassword(auth,email,pass).then(c=>updateProfile(c.user,{displayName:name})).catch(e=>window._authErr&&window._authErr(e.code));
 window._logout = () => signOut(auth).then(() => window.location.reload());
+window._updateDisplayName = (name) => updateProfile(auth.currentUser, {displayName: name}).then(() => { if(window._currentUser) window._currentUser.displayName = name; });
 
 onAuthStateChanged(auth, user => {
   const landing = document.getElementById('landing');
@@ -184,6 +185,16 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .btn-premium:disabled{opacity:.4;cursor:not-allowed}
 .btn-logout{width:100%;padding:12px;border-radius:14px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}
 .version{position:fixed;bottom:4px;right:8px;font-size:10px;opacity:.25;font-family:var(--font-cond);pointer-events:none}
+/* Force mdp */
+.pwd-strength{display:flex;gap:4px;margin-top:-4px}
+.pwd-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s}
+.pwd-label{font-size:11px;font-family:var(--font-cond);opacity:.6;text-align:right;margin-top:2px;min-height:14px}
+/* Edit nom */
+.edit-name-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:8px}
+.edit-name-input{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:8px 12px;border-radius:10px;font-size:16px;font-family:var(--font-display);text-transform:uppercase;text-align:center;outline:none;width:180px;display:none}
+.edit-name-input:focus{border-color:var(--gold)}
+.btn-edit-name{background:none;border:1px solid var(--line);color:rgba(255,255,255,.5);padding:6px 12px;border-radius:8px;cursor:pointer;font-family:var(--font-cond);font-size:11px;text-transform:uppercase;letter-spacing:.1em;transition:all .2s}
+.btn-edit-name:hover{border-color:var(--gold);color:var(--gold)}
 </style>
 </head>
 <body>
@@ -205,7 +216,9 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   <div class="lform" id="formRegister" style="display:none">
     <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
     <input type="email" id="regEmail" placeholder="Adresse email" autocomplete="email">
-    <input type="password" id="regPassword" placeholder="Mot de passe (6 car. min)" autocomplete="new-password">
+    <input type="password" id="regPassword" placeholder="Mot de passe (ex: Abc@1234)" autocomplete="new-password" oninput="checkPwd(this.value)">
+    <div class="pwd-strength"><div class="pwd-bar" id="pb1"></div><div class="pwd-bar" id="pb2"></div><div class="pwd-bar" id="pb3"></div><div class="pwd-bar" id="pb4"></div></div>
+    <div class="pwd-label" id="pwdLabel"></div>
     <div class="aerr" id="registerErr"></div>
     <button class="btn-sub" onclick="doRegister()">Créer mon compte</button>
   </div>
@@ -259,7 +272,11 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <div id="page-profil" class="page">
 <div class="profile-wrap">
   <div class="avatar" id="profileAvatar">👤</div>
-  <div class="profile-name" id="profileName">—</div>
+  <div class="edit-name-row">
+    <div class="profile-name" id="profileName">—</div>
+    <input class="edit-name-input" id="editNameInput" type="text" maxlength="20">
+    <button class="btn-edit-name" id="editNameBtn" onclick="toggleEditName()">✏️ Modifier</button>
+  </div>
   <div class="profile-email" id="profileEmail">—</div>
   <div class="badge-free">FREE</div>
   <div class="profile-card">
@@ -282,7 +299,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v1.4</div>
+<div class="version">v1.5</div>
 
 <script>
 const PLAYERS={};
@@ -477,6 +494,54 @@ function updateProfile(){
 const authErrors={'auth/invalid-email':'Email invalide','auth/user-not-found':'Aucun compte avec cet email','auth/wrong-password':'Mot de passe incorrect','auth/invalid-credential':'Email ou mot de passe incorrect','auth/email-already-in-use':'Cet email est déjà utilisé','auth/weak-password':'Mot de passe trop court (6 car. min)','auth/too-many-requests':'Trop de tentatives, réessaie plus tard'};
 window._authErr=code=>{const msg=authErrors[code]||'Erreur de connexion';const isLogin=document.getElementById('formLogin').style.display!=='none';document.getElementById(isLogin?'loginErr':'registerErr').textContent=msg;};
 
+function pwdScore(p){
+  let s=0;
+  if(p.length>=8)s++;
+  if(/[A-Z]/.test(p))s++;
+  if(/[a-z]/.test(p))s++;
+  if(/[0-9]/.test(p))s++;
+  if(/[^A-Za-z0-9]/.test(p))s++;
+  return s; // 0-5
+}
+function checkPwd(p){
+  const score=pwdScore(p);
+  const colors=['','#D7263D','#ff7a00','#FFB200','#00A878'];
+  const labels=['','Trop faible','Faible','Moyen','Fort 💪'];
+  const bars=[0,0,0,0];
+  if(score>=1)bars[0]=1;if(score>=2)bars[1]=1;if(score>=3)bars[2]=1;if(score>=4)bars[3]=1;
+  const col=colors[Math.min(score,4)]||'rgba(255,255,255,.1)';
+  for(let i=1;i<=4;i++)document.getElementById('pb'+i).style.background=bars[i-1]?col:'rgba(255,255,255,.1)';
+  document.getElementById('pwdLabel').textContent=p.length>0?(labels[Math.min(score,4)]||''):'';
+}
+
+function isStrongPwd(p){
+  return p.length>=8 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p);
+}
+
+// Edit nom dans le profil
+function toggleEditName(){
+  const nameEl=document.getElementById('profileName');
+  const input=document.getElementById('editNameInput');
+  const btn=document.getElementById('editNameBtn');
+  if(input.style.display==='none'||!input.style.display){
+    input.value=nameEl.textContent==='—'?'':nameEl.textContent;
+    nameEl.style.display='none';input.style.display='block';
+    btn.textContent='✅ Sauvegarder';input.focus();
+  } else {
+    const newName=input.value.trim();
+    if(!newName){input.focus();return;}
+    if(window._currentUser && window._updateDisplayName){
+      window._updateDisplayName(newName).then(()=>{
+        nameEl.textContent=newName.toUpperCase();
+        document.getElementById('profileAvatar').textContent=newName[0].toUpperCase();
+        nameEl.style.display='block';input.style.display='none';
+        btn.textContent='✏️ Modifier';
+        toast('Nom mis à jour ✓');
+      }).catch(()=>toast('Erreur lors de la mise à jour'));
+    }
+  }
+}
+
 function switchTab(tab){
   document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('on',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
   document.getElementById('formLogin').style.display=tab==='login'?'flex':'none';
@@ -493,6 +558,7 @@ function doRegister(){
   const name=document.getElementById('regName').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPassword').value;
   document.getElementById('registerErr').textContent='';
   if(!name||!email||!pass){document.getElementById('registerErr').textContent='Remplis tous les champs';return;}
+  if(!isStrongPwd(pass)){document.getElementById('registerErr').textContent='Mdp trop faible : 8 car. min, majuscule, minuscule, chiffre et symbole requis';return;}
   window._registerEmail&&window._registerEmail(name,email,pass);
 }
 
