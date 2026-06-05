@@ -13,6 +13,73 @@
 <link rel="manifest" href="manifest.json">
 <title>Panini World Cup 2026 — Collection</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB8u3tNXXINavWMQW25f4eZA361Rxz_AeY",
+  authDomain: "mondial-panini-2026.firebaseapp.com",
+  databaseURL: "https://mondial-panini-2026-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mondial-panini-2026",
+  storageBucket: "mondial-panini-2026.firebasestorage.app",
+  messagingSenderId: "820063287049",
+  appId: "1:820063287049:web:e2724139dd7b30c47585d8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+let currentUser = null;
+let cloudSyncTimeout = null;
+
+// Sync vers Firebase
+window._cloudSave = function(stateData) {
+  if (!currentUser) return;
+  clearTimeout(cloudSyncTimeout);
+  cloudSyncTimeout = setTimeout(() => {
+    set(ref(db, 'users/' + currentUser.uid + '/collection'), stateData);
+  }, 800);
+};
+
+// Login Google
+window._loginGoogle = function() {
+  const provider = new GoogleAuthProvider();
+  signInWithPopup(auth, provider).catch(e => console.error(e));
+};
+
+// Logout
+window._logout = function() {
+  signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  const btn = document.getElementById('authBtn');
+  const info = document.getElementById('userInfo');
+  if (user) {
+    btn.textContent = 'Déconnexion';
+    btn.onclick = window._logout;
+    info.textContent = user.displayName || user.email;
+    info.style.display = 'block';
+    // Charger collection depuis le cloud
+    onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
+      const data = snap.val();
+      if (data && typeof data === 'object') {
+        window._state = data;
+        if (window._render) window._render();
+        window._toast('Collection chargée ☁️');
+      }
+    }, { onlyOnce: true });
+  } else {
+    btn.textContent = '🔑 Connexion Google';
+    btn.onclick = window._loginGoogle;
+    info.style.display = 'none';
+  }
+});
+</script>
 <style>
 /* Polices système — aucun téléchargement, rendu instantané même hors-ligne */
 :root{
@@ -156,9 +223,17 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .loading{text-align:center;padding:60px;opacity:.5;font-family:var(--font-cond);letter-spacing:.2em;text-transform:uppercase}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:#000;padding:10px 22px;border-radius:99px;font-weight:600;font-family:var(--font-cond);letter-spacing:.08em;text-transform:uppercase;font-size:13px;transition:transform .3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0)}
+.auth-bar{display:flex;align-items:center;gap:12px;justify-content:flex-end;padding:10px 16px 0;flex-wrap:wrap}
+#authBtn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:8px 16px;border-radius:10px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:background .2s}
+#authBtn:hover{background:rgba(255,255,255,.14)}
+#userInfo{font-family:var(--font-cond);font-size:12px;color:var(--gold);letter-spacing:.05em;display:none}
 </style>
 </head>
 <body>
+<div class="auth-bar">
+  <span id="userInfo"></span>
+  <button id="authBtn" onclick="window._loginGoogle && window._loginGoogle()">🔑 Connexion Google</button>
+</div>
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
@@ -242,11 +317,18 @@ function load(){
   try{
     const r=localStorage.getItem(KEY);
     state=r?JSON.parse(r):{};
+    // Si Firebase a chargé une collection avant load(), elle est dans _state
+    if(window._state && Object.keys(window._state).length > 0) state = window._state;
   }catch(e){state={}}
+  window._state = state;
+  window._render = render;
+  window._toast = toast;
   render();
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){console.error(e)}
+  window._state = state;
+  if(window._cloudSave) window._cloudSave(state);
 }
 
 function totals(){
