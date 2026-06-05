@@ -13,103 +13,6 @@
 <link rel="manifest" href="manifest.json">
 <title>Panini World Cup 2026 — Collection</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB8u3tNXXINavWMQW25f4eZA361Rxz_AeY",
-  authDomain: "mondial-panini-2026.firebaseapp.com",
-  databaseURL: "https://mondial-panini-2026-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mondial-panini-2026",
-  storageBucket: "mondial-panini-2026.firebasestorage.app",
-  messagingSenderId: "820063287049",
-  appId: "1:820063287049:web:e2724139dd7b30c47585d8"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
-let currentUser = null;
-let cloudSyncTimeout = null;
-
-// Sync vers Firebase
-window._cloudSave = function(stateData) {
-  if (!currentUser) return;
-  clearTimeout(cloudSyncTimeout);
-  cloudSyncTimeout = setTimeout(() => {
-    set(ref(db, 'users/' + currentUser.uid + '/collection'), stateData);
-  }, 800);
-};
-
-// Login Google
-window._loginGoogle = function() {
-  const provider = new GoogleAuthProvider();
-  signInWithPopup(auth, provider).catch(e => {
-    window._authError && window._authError(e.code);
-  });
-};
-
-// Inscription email/mdp
-window._registerEmail = function(name, email, password) {
-  createUserWithEmailAndPassword(auth, email, password)
-    .then(cred => updateProfile(cred.user, { displayName: name }))
-    .catch(e => window._authError && window._authError(e.code));
-};
-
-// Connexion email/mdp
-window._loginEmail = function(email, password) {
-  signInWithEmailAndPassword(auth, email, password)
-    .catch(e => window._authError && window._authError(e.code));
-};
-
-// Logout
-window._logout = function() {
-  try{localStorage.removeItem("panini_wc2026_v3");}catch(e){}
-  signOut(auth);
-};
-
-onAuthStateChanged(auth, user => {
-  currentUser = user;
-  const info = document.getElementById('userInfo');
-  const landing = document.getElementById('landing');
-  const appDiv = document.getElementById('app');
-
-  if (user) {
-    currentUser = user;
-    window._currentUser = user;
-    landing.style.display = 'none';
-    appDiv.classList.add('visible');
-    if (info) { info.textContent = user.displayName || user.email; info.style.display = 'block'; }
-
-    // Vider immédiatement le state local avant de charger le cloud
-    if (window._loadCloud) window._loadCloud({});
-
-    // Attendre que _loadCloud soit défini puis charger Firebase
-    const waitAndLoad = () => {
-      if (window._loadCloud) {
-        window._loadCloud({});
-        onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
-          const data = snap.val();
-          window._loadCloud(data && typeof data === 'object' ? data : {});
-          if (data && Object.keys(data).length > 0) window._toast('Collection chargée ☁️');
-        }, { onlyOnce: true });
-      } else {
-        setTimeout(waitAndLoad, 50);
-      }
-    };
-    waitAndLoad();
-
-  } else {
-    // Montrer landing, cacher app
-    landing.style.display = 'flex';
-    appDiv.classList.remove('visible');
-    if (info) info.style.display = 'none';
-  }
-});
-</script>
 <style>
 /* Polices système — aucun téléchargement, rendu instantané même hors-ligne */
 :root{
@@ -253,165 +156,9 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .loading{text-align:center;padding:60px;opacity:.5;font-family:var(--font-cond);letter-spacing:.2em;text-transform:uppercase}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:#000;padding:10px 22px;border-radius:99px;font-weight:600;font-family:var(--font-cond);letter-spacing:.08em;text-transform:uppercase;font-size:13px;transition:transform .3s;z-index:99}
 .toast.show{transform:translateX(-50%) translateY(0)}
-.auth-bar{display:flex;align-items:center;gap:12px;justify-content:flex-end;padding:10px 16px 0;flex-wrap:wrap}
-#authBtn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:8px 16px;border-radius:10px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:background .2s}
-#authBtn:hover{background:rgba(255,255,255,.14)}
-#userInfo{font-family:var(--font-cond);font-size:12px;color:var(--gold);letter-spacing:.05em;display:none}
-
-/* Page d'accueil */
-#landing{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:100vh;text-align:center;padding:40px 24px;
-}
-.landing-ball{font-size:80px;margin-bottom:24px;animation:bounce 2s infinite}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-.landing-title{
-  font-family:var(--font-display);font-size:clamp(48px,12vw,96px);
-  line-height:.9;text-transform:uppercase;
-  background:linear-gradient(180deg,#fff,#9aa3b2);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  margin-bottom:8px;
-}
-.landing-title span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
-.landing-sub{
-  font-family:var(--font-cond);letter-spacing:.3em;font-size:13px;
-  color:var(--gold);text-transform:uppercase;margin-bottom:40px;opacity:.85;
-}
-.landing-desc{
-  font-size:16px;color:rgba(255,255,255,.6);max-width:400px;
-  line-height:1.6;margin-bottom:48px;font-family:var(--font-body);
-}
-.landing-desc strong{color:#fff}
-.btn-login{
-  display:inline-flex;align-items:center;gap:12px;
-  background:linear-gradient(135deg,var(--gold),#ff7a00);
-  color:#000;font-family:var(--font-display);font-size:16px;
-  text-transform:uppercase;letter-spacing:.08em;
-  padding:18px 40px;border-radius:99px;border:none;cursor:pointer;
-  box-shadow:0 8px 32px rgba(255,178,0,.4);
-  transition:transform .15s, box-shadow .2s;
-}
-.btn-login:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(255,178,0,.55)}
-.btn-login:active{transform:scale(.97)}
-.landing-note{margin-top:24px;font-size:12px;opacity:.35;font-family:var(--font-cond);letter-spacing:.1em}
-
-/* App cachée par défaut */
-#app{display:none}
-#app.visible{display:block}
-
-/* Navigation tabs */
-.nav-tabs{
-  display:flex;gap:0;background:rgba(255,255,255,.04);
-  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:49;
-}
-.nav-tab{
-  flex:1;background:none;border:none;color:rgba(255,255,255,.5);
-  padding:14px 8px;cursor:pointer;font-family:var(--font-cond);
-  text-transform:uppercase;letter-spacing:.1em;font-size:12px;
-  border-bottom:2px solid transparent;transition:all .2s;
-}
-.nav-tab.on{color:var(--gold);border-bottom-color:var(--gold);}
-
-/* Pages */
-.page{display:none}.page.on{display:block}
-
-/* Profil */
-.profile-wrap{max-width:480px;margin:0 auto;padding:32px 16px 80px}
-.avatar{
-  width:80px;height:80px;border-radius:50%;
-  background:linear-gradient(135deg,var(--gold),#ff7a00);
-  display:flex;align-items:center;justify-content:center;
-  font-size:32px;margin:0 auto 16px;
-  box-shadow:0 6px 24px rgba(255,178,0,.35);
-}
-.profile-name{font-family:var(--font-display);font-size:24px;text-align:center;text-transform:uppercase;margin-bottom:4px}
-.profile-email{text-align:center;opacity:.5;font-size:13px;font-family:var(--font-cond);letter-spacing:.05em;margin-bottom:24px}
-.badge-free{display:inline-block;background:rgba(255,255,255,.07);border:1px solid var(--line);color:rgba(255,255,255,.6);font-family:var(--font-cond);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin:0 auto 32px;display:block;width:fit-content;margin:0 auto 32px}
-.badge-premium{display:inline-block;background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin:0 auto 32px;display:block;width:fit-content;}
-.profile-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
-.profile-card h3{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.15em;font-size:11px;opacity:.5;margin-bottom:16px}
-.profile-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-.profile-row:last-child{border-bottom:none}
-.profile-row span:first-child{font-family:var(--font-cond);font-size:13px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}
-.profile-row span:last-child{font-family:var(--font-cond);font-size:14px;font-weight:700;color:var(--gold)}
-.btn-premium{
-  width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--gold),#ff7a00);
-  color:#000;font-family:var(--font-display);font-size:15px;
-  text-transform:uppercase;letter-spacing:.08em;
-  box-shadow:0 6px 24px rgba(255,178,0,.3);margin-bottom:12px;
-  transition:transform .15s;
-}
-.btn-premium:active{transform:scale(.98)}
-.btn-premium:disabled{opacity:.4;cursor:not-allowed}
-.btn-logout{width:100%;padding:12px;border-radius:14px;border:1px solid var(--red);background:none;color:var(--red);font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:13px;cursor:pointer}
-/* Landing forms */
-.landing-tabs{display:flex;gap:0;background:rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:28px;width:100%;max-width:320px}
-.landing-tab{flex:1;background:none;border:none;color:rgba(255,255,255,.5);padding:12px;cursor:pointer;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:.1em;font-size:12px;transition:all .2s}
-.landing-tab.on{background:var(--gold);color:#000}
-.landing-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px}
-.landing-form input{background:rgba(255,255,255,.07);border:1px solid var(--line);color:#fff;padding:14px 16px;border-radius:12px;font-size:15px;font-family:inherit;outline:none;transition:border .2s}
-.landing-form input:focus{border-color:var(--gold)}
-.landing-form input::placeholder{color:rgba(255,255,255,.35)}
-.btn-submit{background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000;font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;padding:16px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 6px 24px rgba(255,178,0,.3);transition:transform .15s}
-.btn-submit:active{transform:scale(.98)}
-.auth-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:320px}
-.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line)}
-.auth-divider span{font-family:var(--font-cond);font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.1em}
-.auth-error{color:var(--red);font-size:12px;font-family:var(--font-cond);letter-spacing:.05em;text-align:center;min-height:16px}
 </style>
 </head>
 <body>
-
-<!-- PAGE D'ACCUEIL -->
-<div id="landing">
-  <div class="landing-ball">⚽</div>
-  <div class="landing-title">Panini <span>2026</span></div>
-  <div class="landing-sub">FIFA World Cup • USA · Canada · Mexico</div>
-
-  <!-- Tabs Connexion / Inscription -->
-  <div class="landing-tabs">
-    <button class="landing-tab on" onclick="switchAuthTab('login')">Connexion</button>
-    <button class="landing-tab" onclick="switchAuthTab('register')">Inscription</button>
-  </div>
-
-  <!-- Formulaire Connexion -->
-  <div class="landing-form" id="formLogin">
-    <input type="email" id="loginEmail" placeholder="Adresse email" autocomplete="email">
-    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password">
-    <div class="auth-error" id="loginError"></div>
-    <button class="btn-submit" onclick="doLogin()">Se connecter</button>
-  </div>
-
-  <!-- Formulaire Inscription -->
-  <div class="landing-form" id="formRegister" style="display:none">
-    <input type="text" id="regName" placeholder="Ton prénom" autocomplete="given-name">
-    <input type="email" id="regEmail" placeholder="Adresse email" autocomplete="email">
-    <input type="password" id="regPassword" placeholder="Mot de passe (6 caractères min)" autocomplete="new-password">
-    <div class="auth-error" id="registerError"></div>
-    <button class="btn-submit" onclick="doRegister()">Créer mon compte</button>
-  </div>
-
-  <div class="auth-divider"><span>ou</span></div>
-
-  <button class="btn-login" onclick="window._loginGoogle && window._loginGoogle()">
-    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFF" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
-    Continuer avec Google
-  </button>
-  <div class="landing-note">Ta collection est sauvegardée dans le cloud · Accessible sur tous tes appareils</div>
-</div>
-
-<!-- APP (cachée jusqu'à connexion) -->
-<div id="app">
-
-<!-- Nav tabs -->
-<nav class="nav-tabs">
-  <button class="nav-tab on" data-page="collection">⚽ Collection</button>
-  <button class="nav-tab" data-page="profil">👤 Profil</button>
-</nav>
-
-<!-- PAGE COLLECTION -->
-<div id="page-collection" class="page on">
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
@@ -443,38 +190,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <button class="reset" id="reset">Réinitialiser</button>
 </div>
 <input type="file" id="file" accept="application/json" style="display:none">
-</div><!-- /wrap -->
-</div><!-- /page-collection -->
-
-<!-- PAGE PROFIL -->
-<div id="page-profil" class="page">
-<div class="profile-wrap">
-  <div class="avatar" id="profileAvatar">👤</div>
-  <div class="profile-name" id="profileName">—</div>
-  <div class="profile-email" id="profileEmail">—</div>
-  <div class="badge-free" id="profileBadge">FREE</div>
-
-  <div class="profile-card">
-    <h3>Ma collection</h3>
-    <div class="profile-row"><span>Collés</span><span id="pHave">0</span></div>
-    <div class="profile-row"><span>Manquants</span><span id="pMiss">0</span></div>
-    <div class="profile-row"><span>Doublons</span><span id="pDup">0</span></div>
-    <div class="profile-row"><span>Progression</span><span id="pPct">0%</span></div>
-  </div>
-
-  <div class="profile-card">
-    <h3>Mon compte</h3>
-    <div class="profile-row"><span>Statut</span><span id="pStatus">FREE</span></div>
-    <div class="profile-row"><span>Connexion</span><span id="pProvider">Google</span></div>
-    <div class="profile-row"><span>Membre depuis</span><span id="pSince">—</span></div>
-  </div>
-
-  <button class="btn-premium" disabled>⭐ Passer Premium — Bientôt disponible</button>
-  <button class="btn-logout" onclick="window._logout && window._logout()">Déconnexion</button>
 </div>
-</div><!-- /page-profil -->
-
-</div><!-- /app -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -527,19 +243,10 @@ function load(){
     const r=localStorage.getItem(KEY);
     state=r?JSON.parse(r):{};
   }catch(e){state={}}
-  window._render = render;
-  window._toast = toast;
-  // Fonction pour charger depuis Firebase — écrase le local
-  window._loadCloud = function(data) {
-    state = data || {};
-    try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
-    render();
-  };
   render();
 }
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){console.error(e)}
-  if(window._cloudSave) window._cloudSave(state);
 }
 
 function totals(){
@@ -560,6 +267,8 @@ function remove(i){
 }
 
 function render(){
+  // Synchroniser depuis window._state (mis à jour par Firebase)
+  state = window._state || {};
   const t=totals();
   $("sHave").textContent=t.have;
   $("sTotal").textContent=t.total;
@@ -779,91 +488,7 @@ $("file").onchange=e=>{
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
-
-// ---- Navigation tabs ----
-document.querySelectorAll(".nav-tab").forEach(tab=>{
-  tab.onclick=()=>{
-    document.querySelectorAll(".nav-tab").forEach(t=>t.classList.remove("on"));
-    document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
-    tab.classList.add("on");
-    document.getElementById("page-"+tab.dataset.page).classList.add("on");
-    if(tab.dataset.page==="profil") updateProfile();
-  };
-});
-
-// ---- Mise à jour page profil ----
-function updateProfile(){
-  const t=totals();
-  const pct=t.total>0?Math.round(t.have/t.total*100):0;
-  const el=id=>document.getElementById(id);
-  el("pHave").textContent=t.have;
-  el("pMiss").textContent=t.miss;
-  el("pDup").textContent=t.dup;
-  el("pPct").textContent=pct+"%";
-  // Infos user depuis Firebase (exposées par le module)
-  if(window._currentUser){
-    const u=window._currentUser;
-    el("profileName").textContent=u.displayName||"Utilisateur";
-    el("profileEmail").textContent=u.email||"";
-    el("profileAvatar").textContent=u.displayName?u.displayName[0].toUpperCase():"👤";
-    // Date inscription
-    if(u.metadata && u.metadata.creationTime){
-      const d=new Date(u.metadata.creationTime);
-      el("pSince").textContent=d.toLocaleDateString("fr-BE",{day:"numeric",month:"long",year:"numeric"});
-    }
-    // Provider
-    const prov=u.providerData[0]?.providerId||"";
-    el("pProvider").textContent=prov==="google.com"?"Google":prov==="password"?"Email":prov;
-  }
-}
-window._updateProfile=updateProfile;
-
-// ---- Auth forms ----
-const authErrors = {
-  'auth/invalid-email': 'Email invalide',
-  'auth/user-not-found': 'Aucun compte avec cet email',
-  'auth/wrong-password': 'Mot de passe incorrect',
-  'auth/invalid-credential': 'Email ou mot de passe incorrect',
-  'auth/email-already-in-use': 'Cet email est déjà utilisé',
-  'auth/weak-password': 'Mot de passe trop court (6 car. min)',
-  'auth/too-many-requests': 'Trop de tentatives, réessaie plus tard',
-};
-window._authError = function(code) {
-  const msg = authErrors[code] || 'Erreur de connexion';
-  const el = document.getElementById('loginError') || document.getElementById('registerError');
-  // Afficher dans le bon formulaire
-  const loginErr = document.getElementById('loginError');
-  const regErr = document.getElementById('registerError');
-  if(document.getElementById('formLogin').style.display !== 'none') loginErr.textContent = msg;
-  else regErr.textContent = msg;
-};
-
-function switchAuthTab(tab) {
-  document.querySelectorAll('.landing-tab').forEach((t,i) => t.classList.toggle('on', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
-  document.getElementById('formLogin').style.display = tab==='login' ? 'flex' : 'none';
-  document.getElementById('formRegister').style.display = tab==='register' ? 'flex' : 'none';
-  document.getElementById('loginError').textContent = '';
-  document.getElementById('registerError').textContent = '';
-}
-
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPassword').value;
-  document.getElementById('loginError').textContent = '';
-  if(!email || !pass) { document.getElementById('loginError').textContent = 'Remplis tous les champs'; return; }
-  window._loginEmail && window._loginEmail(email, pass);
-}
-
-function doRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value;
-  document.getElementById('registerError').textContent = '';
-  if(!name || !email || !pass) { document.getElementById('registerError').textContent = 'Remplis tous les champs'; return; }
-  window._registerEmail && window._registerEmail(name, email, pass);
-}
-
-load();
+render(); // Firebase chargera les données via onAuthStateChanged
 </script>
 </body>
 </html>
