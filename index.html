@@ -84,6 +84,9 @@ onAuthStateChanged(auth, user => {
     appDiv.classList.add('visible');
     if (info) { info.textContent = user.displayName || user.email; info.style.display = 'block'; }
 
+    // Vider immédiatement le state local avant de charger le cloud
+    if (window._loadCloud) window._loadCloud({});
+
     // Charger collection depuis Firebase — source de vérité
     onValue(ref(db, 'users/' + user.uid + '/collection'), snap => {
       const data = snap.val();
