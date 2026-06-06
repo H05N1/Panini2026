@@ -7,11 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0C0C14">
-<meta name="apple-mobile-web-app-title" content="Panini 2026">
+<meta name="apple-mobile-web-app-title" content="CollectoFoot 2026">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
-<title>Panini World Cup 2026</title>
+<title>CollectoFoot 2026</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -257,8 +257,8 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 
 <div id="landing">
   <div class="landing-ball">⚽</div>
-  <div class="landing-title">Panini <span>2026</span></div>
-  <div class="landing-sub">FIFA World Cup • USA · Canada · Mexico</div>
+  <div class="landing-title">Collecto<span>Foot</span></div>
+  <div class="landing-sub">FIFA World Cup 2026 • USA · Canada · Mexico</div>
   <div class="ltabs">
     <button class="ltab on" onclick="switchTab('login')">Connexion</button>
     <button class="ltab" onclick="switchTab('register')">Inscription</button>
@@ -295,6 +295,11 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
     Continuer avec Google
   </button>
   <div class="landing-note">Collection sauvegardée dans le cloud · Accessible partout</div>
+  <div style="margin-top:16px;font-size:11px;opacity:.3;font-family:var(--font-cond);letter-spacing:.05em">
+    <a href="privacy.html" style="color:inherit;text-decoration:underline">Politique de confidentialité</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html" style="color:inherit;text-decoration:underline">CGU</a>
+  </div>
 </div>
 
 <div id="app">
@@ -311,7 +316,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <div class="wrap">
 <header>
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
-  <h1>Panini <span>2026</span></h1>
+  <h1>Collecto<span>Foot</span></h1>
   <div class="stats">
     <div class="stat"><b id="sHave">0</b><small>Collés</small></div>
     <div class="stat"><b id="sTotal">0</b><small>Total</small></div>
@@ -382,10 +387,25 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v2.5</div>
+<div class="version">v2.7</div>
 
 <script>
 const PLAYERS={};
+
+// Section FIFA WORLD CUP — 20 stickers : 00 + FWC1 à FWC19
+const FWC_COUNT = 20;
+const FWC_LABELS = ['00','FWC1','FWC2','FWC3','FWC4','FWC5','FWC6','FWC7','FWC8','FWC9','FWC10','FWC11','FWC12','FWC13','FWC14','FWC15','FWC16','FWC17','FWC18','FWC19'];
+
+// Section EXTRA STICKERS — 20 joueurs × 4 variantes = 80 cartes
+const EXTRA_PLAYERS = [
+  'Jude Bellingham','Jérémy Doku','Luka Modrić','Lamine Yamal','Kylian Mbappé',
+  'Florian Wirtz','Erling Haaland','Cristiano Ronaldo','Lionel Messi','Vinícius Júnior',
+  'Luis Díaz','Moisés Caicedo','Federico Valverde','Alphonso Davies','Christian Pulisic',
+  'Raúl Jiménez','Achraf Hakimi','Mohamed Salah','Heungmin Son','Cody Gakpo'
+];
+const EXTRA_VARIANTS = ['Regular','Bronze','Argent','Gold'];
+const EXTRA_COLORS = {Regular:'rgba(255,255,255,.15)',Bronze:'#cd7f32',Argent:'#C0C0C0',Gold:'#FFB200'};
+const EXTRA_ICONS = {Regular:'⚽',Bronze:'🥉',Argent:'🥈',Gold:'🥇'};
 const TEAMS=[
  ["🇲🇽","Mexique","MEX","A"],["🇿🇦","Afrique du Sud","RSA","A"],["🇰🇷","Corée du Sud","KOR","A"],["🇨🇿","République tchèque","CZE","A"],
  ["🇨🇦","Canada","CAN","B"],["🇧🇦","Bosnie-Herzégovine","BIH","B"],["🇶🇦","Qatar","QAT","B"],["🇨🇭","Suisse","SUI","B"],
@@ -401,6 +421,10 @@ const TEAMS=[
  ["🏴󠁧󠁢󠁥󠁮󠁧󠁿","Angleterre","ENG","L"],["🇭🇷","Croatie","CRO","L"],["🇬🇭","Ghana","GHA","L"],["🇵🇦","Panama","PAN","L"]
 ];
 const PER=20, SPECIAL=20;
+// Index layout: [0..19]=FWC, [20..979]=TEAMS(48×20), [980..1059]=EXTRA(20×4)
+const FWC_BASE = 0;
+const TEAMS_BASE = FWC_COUNT;
+const EXTRA_BASE = FWC_COUNT + TEAMS.length * PER;
 let state={};
 let filter="all", q="";
 const openTeams=new Set();
@@ -521,7 +545,7 @@ function save(){
 }
 
 function totals(){
-  const total=TEAMS.length*PER+SPECIAL;
+  const total = FWC_COUNT + TEAMS.length*PER + EXTRA_PLAYERS.length*EXTRA_VARIANTS.length;
   let have=0,dup=0;
   for(const k in state){const c=state[k];if(c>0)have++;if(c>1)dup+=c-1;}
   return{total,have,miss:total-have,dup};
@@ -543,10 +567,31 @@ function render(){
   $("sMiss").textContent=t.miss;$("sDup").textContent=t.dup;
   $("bar").style.width=(t.have/t.total*100)+"%";
   const wrap=$("teams");wrap.innerHTML="";
+
+  // ---- FIFA WORLD CUP ----
+  if(!q||"fifa world cup fwc".includes(q)){
+    let have=0,cells="",visibleAny=false;
+    for(let s=0;s<FWC_COUNT;s++){
+      const idx=FWC_BASE+s,c=state[idx]||0;if(c>0)have++;
+      let cls="cell",extra="";
+      if(c===1)cls+=" have";else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
+      if(filter==="miss"&&c>0)continue;if(filter==="dup"&&c<2)continue;
+      visibleAny=true;
+      cells+=`<div class="${cls}" ${extra} data-i="${idx}"><span class="ic">🌍</span><span class="num">${FWC_LABELS[s]}</span></div>`;
+    }
+    if(!((filter==="miss"||filter==="dup")&&!visibleAny)){
+      const d=document.createElement("details");d.className="team";
+      if(q||filter!=="all"||openTeams.has("FWC"))d.open=true;d.dataset.team="FWC";
+      d.innerHTML=`<summary><span class="flag">🌍</span><span class="tname">FIFA World Cup</span><span class="tprog">${have}/${FWC_COUNT}</span><span class="tbar"><i style="width:${Math.round(have/FWC_COUNT*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
+      wrap.appendChild(d);
+    }
+  }
+
+  // ---- ÉQUIPES ----
   TEAMS.forEach((tm,ti)=>{
     const abbr=tm[2],grp=tm[3];
     if(q&&!tm[1].toLowerCase().includes(q)&&!abbr.toLowerCase().includes(q)&&!("groupe "+grp.toLowerCase()).includes(q))return;
-    const base=ti*PER,roster=PLAYERS[abbr]||[];
+    const base=TEAMS_BASE+ti*PER,roster=PLAYERS[abbr]||[];
     let have=0,cells="",visibleAny=false;
     for(let s=0;s<PER;s++){
       const idx=base+s,c=state[idx]||0;
@@ -567,23 +612,40 @@ function render(){
     d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
     wrap.appendChild(d);
   });
-  if(!q||"spéciaux speciaux special".includes(q)){
-    const sbase=TEAMS.length*PER;let have=0,cells="",visibleAny=false;
-    for(let s=0;s<SPECIAL;s++){
-      const idx=sbase+s,c=state[idx]||0;if(c>0)have++;
-      let cls="cell",extra="";
-      if(c===1)cls+=" have";else if(c>1){cls+=" dup";extra=`data-d="x${c}"`;}
-      if(filter==="miss"&&c>0)continue;if(filter==="dup"&&c<2)continue;
-      visibleAny=true;
-      cells+=`<div class="${cls}" ${extra} data-i="${idx}"><span class="ic">⭐</span><span class="num">${s+1}</span></div>`;
-    }
-    if(!((filter==="miss"||filter==="dup")&&!visibleAny)){
+
+  // ---- EXTRA STICKERS ----
+  const extraMatch = !q || "extra stickers".includes(q) || EXTRA_PLAYERS.some(p=>p.toLowerCase().includes(q));
+  if(extraMatch){
+    const totalExtra=EXTRA_PLAYERS.length*EXTRA_VARIANTS.length;
+    let have=0,cells="",visibleAny=false;
+    EXTRA_PLAYERS.forEach((player,pi)=>{
+      EXTRA_VARIANTS.forEach((variant,vi)=>{
+        const idx=EXTRA_BASE+pi*EXTRA_VARIANTS.length+vi;
+        const c=state[idx]||0;if(c>0)have++;
+        let cls="cell",extra_attr="";
+        if(c===1)cls+=" have";else if(c>1){cls+=" dup";extra_attr=`data-d="x${c}"`;}
+        if(filter==="miss"&&c>0)return;if(filter==="dup"&&c<2)return;
+        if(q&&!player.toLowerCase().includes(q)&&!variant.toLowerCase().includes(q))return;
+        visibleAny=true;
+        const varColor=EXTRA_COLORS[variant];
+        const varIcon=EXTRA_ICONS[variant];
+        const shortName=player.split(' ').pop();
+        cells+=`<div class="${cls}" ${extra_attr} data-i="${idx}" title="${player} — ${variant}"><span class="ic" style="font-size:14px">${varIcon}</span><span class="num" style="font-size:9px;text-align:center;line-height:1.2;white-space:normal">${shortName}</span><span class="pname" style="color:${c>0?'rgba(0,0,0,.75)':varColor};opacity:1">${variant}</span></div>`;
+      });
+    });
+    if(!((filter==="miss"||filter==="dup")&&!visibleAny)&&visibleAny){
       const d=document.createElement("details");d.className="team";
-      if(q||filter!=="all"||openTeams.has("S"))d.open=true;d.dataset.team="S";
-      d.innerHTML=`<summary><span class="flag">⭐</span><span class="tname">Spéciaux & Histoire</span><span class="tprog">${have}/${SPECIAL}</span><span class="tbar"><i style="width:${Math.round(have/SPECIAL*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
+      if(q||filter!=="all"||openTeams.has("EXTRA"))d.open=true;d.dataset.team="EXTRA";
+      d.innerHTML=`<summary><span class="flag">⭐</span><span class="tname">Extra Stickers</span><span class="tprog">${have}/${totalExtra}</span><span class="tbar"><i style="width:${Math.round(have/totalExtra*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
+      wrap.appendChild(d);
+    } else if(!q && filter==="all"){
+      const d=document.createElement("details");d.className="team";
+      if(openTeams.has("EXTRA"))d.open=true;d.dataset.team="EXTRA";
+      d.innerHTML=`<summary><span class="flag">⭐</span><span class="tname">Extra Stickers</span><span class="tprog">${have}/${totalExtra}</span><span class="tbar"><i style="width:${Math.round(have/totalExtra*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
       wrap.appendChild(d);
     }
   }
+
   if(!wrap.children.length)wrap.innerHTML='<div class="loading">Aucun résultat</div>';
   bindCells();
 }
@@ -598,7 +660,7 @@ function bindCells(){
     el.ontouchmove=()=>{if(timer){clearTimeout(timer);timer=null}};
   });
   document.querySelectorAll("details.team").forEach(d=>{
-    const key=d.dataset.team==="S"?"S":+d.dataset.team;
+    const key=d.dataset.team==="FWC"?"FWC":d.dataset.team==="EXTRA"?"EXTRA":+d.dataset.team;
     d.addEventListener("toggle",()=>{if(d.open)openTeams.add(key);else openTeams.delete(key);});
   });
 }
@@ -609,14 +671,25 @@ $("reset").onclick=()=>{if(confirm("Effacer toute la collection ?")){state={};sa
 
 function buildMissing(){
   const out=[];
+  // FWC
+  const fwcMiss=[];
+  for(let s=0;s<FWC_COUNT;s++){if((state[FWC_BASE+s]||0)===0)fwcMiss.push(FWC_LABELS[s]);}
+  if(fwcMiss.length)out.push({titre:"FIFA World Cup",miss:fwcMiss});
+  // Teams
   TEAMS.forEach((tm,ti)=>{
-    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[],base=ti*PER,miss=[];
+    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[],base=TEAMS_BASE+ti*PER,miss=[];
     for(let s=0;s<PER;s++){if((state[base+s]||0)===0){let lbl=s===0?"Badge":s===1?"Photo équipe":(roster[s-2]||"Joueur "+(s-1));miss.push((s+1)+". "+lbl);}}
     if(miss.length)out.push({titre:`${tm[1]} (${abbr}) — Groupe ${grp}`,miss});
   });
-  const sbase=TEAMS.length*PER,sm=[];
-  for(let s=0;s<SPECIAL;s++){if((state[sbase+s]||0)===0)sm.push((s+1)+". Spécial");}
-  if(sm.length)out.push({titre:"Spéciaux & Histoire",miss:sm});
+  // Extra
+  const extraMiss=[];
+  EXTRA_PLAYERS.forEach((player,pi)=>{
+    EXTRA_VARIANTS.forEach((variant,vi)=>{
+      const idx=EXTRA_BASE+pi*EXTRA_VARIANTS.length+vi;
+      if((state[idx]||0)===0)extraMiss.push(`${player} — ${variant}`);
+    });
+  });
+  if(extraMiss.length)out.push({titre:"Extra Stickers",miss:extraMiss});
   return out;
 }
 
@@ -624,7 +697,7 @@ $("pdf").onclick=()=>{
   if(!window.jspdf){toast("PDF indisponible hors-ligne 1ère fois");return;}
   const groups=buildMissing(),t=totals(),{jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});const W=210,M=14;let y=20;
-  const hdr=()=>{doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text("PANINI WORLD CUP 2026 — Liste des manquants",M,11);};
+  const hdr=()=>{doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text("CollectoFoot 2026 — Liste des manquants",M,11);};
   hdr();doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");doc.setFontSize(10);
   doc.text(`Collés ${t.have}/${t.total} • Manquants ${t.miss} • Doublons ${t.dup} • ${new Date().toLocaleDateString("fr-BE")}`,M,y);y+=8;
   if(!groups.length){doc.setFontSize(14);doc.setTextColor(0,150,80);doc.text("🎉 Album complet, bravo Tonton !",M,y+10);}
