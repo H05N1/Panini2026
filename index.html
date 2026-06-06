@@ -402,7 +402,13 @@ body.light .landing-note{color:#1a1a2e}
     <div class="profile-row"><span>Connexion</span><span id="pProvider">—</span></div>
     <div class="profile-row"><span>Membre depuis</span><span id="pSince">—</span></div>
   </div>
-  <button class="btn-premium" disabled>⭐ Passer Premium — Bientôt disponible</button>
+  <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+  <div id="premiumBtn">
+    <stripe-buy-button
+      buy-button-id="buy_btn_1TfK1nGmXIFSBMTQ2Ef9P0P1"
+      publishable-key="pk_live_51TbEVNGmXIFSBMTQQrQn1KHmR3IxaRPMePkEeis1jzkAOc4TPgNCzo1MCBTeONZkonaUFkuvOrju63zLJaDjBMck00ze3GSXvm"
+    ></stripe-buy-button>
+  </div>
   <button class="btn-logout" onclick="window._logout&&window._logout()">Déconnexion</button>
 </div>
 </div>
@@ -421,7 +427,7 @@ body.light .landing-note{color:#1a1a2e}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v3.3</div>
+<div class="version">v3.5</div>
 
 <script>
 const PLAYERS={};
@@ -787,6 +793,9 @@ function updateProfile(){
     const prov=u.providerData[0]?.providerId||"";
     el("pProvider").textContent=prov==="google.com"?"Google":prov==="password"?"Email":prov;
   }
+  // Cacher bouton Stripe si déjà premium
+  const premBtn = document.getElementById('premiumBtn');
+  if(premBtn) premBtn.style.display = isPremium ? 'none' : 'block';
 }
 
 // Auth forms
