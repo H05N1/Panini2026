@@ -402,7 +402,10 @@ body.light .landing-note{color:#1a1a2e}
     <div class="profile-row"><span>Connexion</span><span id="pProvider">—</span></div>
     <div class="profile-row"><span>Membre depuis</span><span id="pSince">—</span></div>
   </div>
-  <button class="btn-premium" id="premiumBtn" onclick="document.getElementById('stripeModal').style.display='flex'">⭐ Passer Premium — 2,99€</button>
+  <button class="btn-premium" id="premiumBtn" onclick="document.getElementById('stripeModal').style.display='flex'">
+    ⭐ Passez Premium<br>
+    <span style="font-size:11px;font-weight:400;opacity:.8;letter-spacing:.05em;text-transform:none">Paiement unique · Pas d'abonnement</span>
+  </button>
 
 <!-- Modal Stripe -->
 <div id="stripeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
@@ -436,7 +439,7 @@ body.light .landing-note{color:#1a1a2e}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v3.6</div>
+<div class="version">v3.7</div>
 
 <script>
 const PLAYERS={};
