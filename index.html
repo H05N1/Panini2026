@@ -227,8 +227,17 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .adiv::before,.adiv::after{content:"";flex:1;height:1px;background:var(--line)}
 .adiv span{font-family:var(--font-cond);font-size:11px;opacity:.4;text-transform:uppercase;letter-spacing:.1em}
 .aerr{color:var(--red);font-size:12px;font-family:var(--font-cond);text-align:center;min-height:16px}
-.btn-google{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-family:var(--font-cond);font-size:14px;text-transform:uppercase;letter-spacing:.08em;padding:14px 28px;border-radius:12px;cursor:pointer;transition:background .2s;width:100%;max-width:320px;justify-content:center;}
+.btn-google{display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid var(--card-border);color:var(--text);font-family:var(--font-cond);font-size:14px;text-transform:uppercase;letter-spacing:.08em;padding:14px 28px;border-radius:12px;cursor:pointer;transition:background .2s;width:100%;max-width:320px;justify-content:center;}
 .btn-google:hover{background:rgba(255,255,255,.14)}
+body.light .btn-google{background:rgba(0,0,0,.06);color:#1a1a2e;}
+body.light .btn-google svg path{fill:#1a1a2e}
+body.light #landing{background:#F0F2F5}
+body.light .landing-title{background:linear-gradient(180deg,#1a1a2e,#444);-webkit-background-clip:text;background-clip:text;color:transparent}
+body.light .lform input{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.15);color:#1a1a2e}
+body.light .lform input::placeholder{color:rgba(0,0,0,.4)}
+body.light .ltab{color:rgba(0,0,0,.5)}
+body.light .adiv::before,body.light .adiv::after{background:rgba(0,0,0,.15)}
+body.light .landing-note{color:#1a1a2e}
 .landing-note{margin-top:20px;font-size:12px;opacity:.35;font-family:var(--font-cond);letter-spacing:.1em}
 /* App */
 #app{display:none}
@@ -339,9 +348,10 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   <h1>Collecto<span>Foot</span></h1>
   <div class="stats">
     <div class="stat"><b id="sHave">0</b><small>Collés</small></div>
-    <div class="stat"><b id="sTotal">0</b><small>Total</small></div>
+    <div class="stat"><b id="sTotal">980</b><small>Total</small></div>
     <div class="stat"><b id="sMiss">0</b><small>Manquants</small></div>
     <div class="stat"><b id="sDup">0</b><small>Doublons</small></div>
+    <div class="stat"><b id="sExtra">0</b><small>Extra /80</small></div>
   </div>
   <div class="bar"><i id="bar"></i></div>
 </header>
@@ -357,11 +367,8 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <div class="hint">980 stickers • Tap = j'ai • re-tap = doublon (+1) • long press = retirer</div>
 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px">
   <button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Manquants PDF ⭐</button>
-  <button class="reset" id="export" style="border-color:var(--green);color:var(--green)">Exporter</button>
-  <button class="reset" id="import" style="border-color:var(--blue);color:#5b86ff">Importer</button>
   <button class="reset" id="reset">Réinitialiser</button>
 </div>
-<input type="file" id="file" accept="application/json" style="display:none">
 </div>
 </div>
 
@@ -385,7 +392,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
   <div class="profile-card">
     <h3>Mon compte</h3>
     <div class="theme-toggle">
-      <span>☀️ Thème clair</span>
+      <span id="themeLabel">🌙 Thème sombre</span>
       <label class="toggle-switch">
         <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)">
         <span class="toggle-slider"></span>
@@ -414,7 +421,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v2.9</div>
+<div class="version">v3.2</div>
 
 <script>
 const PLAYERS={};
@@ -590,9 +597,25 @@ function remove(i){
 
 function render(){
   const t=totals();
-  $("sHave").textContent=t.have;$("sTotal").textContent=t.total;
-  $("sMiss").textContent=t.miss;$("sDup").textContent=t.dup;
-  $("bar").style.width=(t.have/t.total*100)+"%";
+  // Total principal = FWC + équipes = 980
+  const mainTotal = FWC_COUNT + TEAMS.length * PER;
+  let mainHave = 0, mainDup = 0;
+  for(let i = FWC_BASE; i < EXTRA_BASE; i++){
+    const c = state[i]||0;
+    if(c>0) mainHave++;
+    if(c>1) mainDup += c-1;
+  }
+  // Extra
+  let extraHave = 0;
+  const extraTotal = EXTRA_PLAYERS.length * EXTRA_VARIANTS.length;
+  for(let i = EXTRA_BASE; i < EXTRA_BASE + extraTotal; i++) if(state[i]>0) extraHave++;
+
+  $("sHave").textContent=mainHave;
+  $("sTotal").textContent=mainTotal;
+  $("sMiss").textContent=mainTotal-mainHave;
+  $("sDup").textContent=mainDup;
+  $("sExtra").textContent=extraHave+'/80';
+  $("bar").style.width=(mainHave/mainTotal*100)+"%";
   const wrap=$("teams");wrap.innerHTML="";
 
   // ---- FIFA WORLD CUP ----
@@ -874,11 +897,17 @@ if("serviceWorker" in navigator){
 function toggleTheme(isLight){
   document.body.classList.toggle('light', isLight);
   localStorage.setItem('theme', isLight?'light':'dark');
+  const lbl=document.getElementById('themeLabel');
+  if(lbl)lbl.textContent=isLight?'☀️ Thème clair':'🌙 Thème sombre';
 }
 // Restaurer le thème
 (function(){
   const t=localStorage.getItem('theme');
-  if(t==='light'){document.body.classList.add('light');const el=document.getElementById('themeToggle');if(el)el.checked=true;}
+  if(t==='light'){
+    document.body.classList.add('light');
+    const el=document.getElementById('themeToggle');if(el)el.checked=true;
+    const lbl=document.getElementById('themeLabel');if(lbl)lbl.textContent='☀️ Thème clair';
+  }
 })();
 
 render();
