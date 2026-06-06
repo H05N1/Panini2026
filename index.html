@@ -197,6 +197,8 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .btn-add-album{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--input-bg);border:1px solid var(--card-border);color:var(--text);opacity:.6;font-size:20px;cursor:pointer;flex-shrink:0;transition:all .2s}
 .btn-add-album:hover{background:var(--gold);color:#000;border-color:var(--gold)}
 .btn-add-album:disabled{opacity:.3;cursor:not-allowed}
+.btn-check-all{background:rgba(255,178,0,.15);border:1px solid rgba(255,178,0,.4);color:var(--gold);font-size:11px;font-family:var(--font-cond);font-weight:700;letter-spacing:.05em;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0;transition:all .2s;margin-left:4px}
+.btn-check-all:hover{background:var(--gold);color:#000}
 .album-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
 .album-modal.on{display:flex}
 .album-modal-box{background:#1a1a2e;border:1px solid var(--line);border-radius:20px;padding:28px;width:90%;max-width:340px;display:flex;flex-direction:column;gap:14px}
@@ -460,7 +462,7 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v4.0</div>
+<div class="version">v4.2</div>
 
 <!-- Celebration modal -->
 <div class="celebration" id="celebrationModal">
@@ -709,7 +711,7 @@ function render(){
     const d=document.createElement("details");d.className="team";
     if(q||filter!=="all"||openTeams.has(ti))d.open=true;
     d.dataset.team=ti;
-    d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
+    d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><button class="btn-check-all" data-base="${base}" data-per="${PER}" onclick="checkAllTeam(event,${base},${PER})" title="Tout cocher">✓✓</button><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
     wrap.appendChild(d);
   });
 
@@ -955,6 +957,18 @@ function toggleTheme(isLight){
   }
 })();
 
+function checkAllTeam(e, base, per){
+  e.stopPropagation(); // éviter d'ouvrir/fermer le panneau
+  const prevState = {...state};
+  let changed = false;
+  for(let s=0; s<per; s++){
+    const idx = base+s;
+    if(!state[idx]){ state[idx]=1; changed=true; }
+  }
+  if(changed){ save(); render(); checkCompletions(prevState); toast("Équipe cochée ✓"); }
+  else toast("Déjà complète !");
+}
+
 // ---- Celebration ----
 const COLORS_CONFETTI = ['#FFB200','#1a6eb5','#00A878','#D7263D','#fff'];
 function launchConfetti(count=60){
@@ -987,7 +1001,7 @@ function checkCompletions(prevState){
     const isComplete = Array.from({length:PER},(_,s)=>state[base+s]||0).every(c=>c>0);
     if(!wasComplete && isComplete && !completedTeams.has(ti)){
       completedTeams.add(ti);
-      setTimeout(()=>showCelebration('🎯',`GOAL!`,`${tm[0]} ${tm[1]} complète !`), 300);
+      setTimeout(()=>showCelebration('⚽🥅',`GOAL!`,`${tm[0]} ${tm[1]} complète !`), 300);
     }
   });
   // Vérifier album complet (980)
