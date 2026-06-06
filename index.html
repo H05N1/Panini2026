@@ -421,7 +421,7 @@ body.light .landing-note{color:#1a1a2e}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v3.2</div>
+<div class="version">v3.3</div>
 
 <script>
 const PLAYERS={};
@@ -763,13 +763,6 @@ $("pdf").onclick=()=>{
   });
   doc.save("panini-manquants-"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF généré");
 };
-
-$("export").onclick=()=>{
-  const blob=new Blob([JSON.stringify(state)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="panini-wc2026-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);toast("Sauvegarde exportée");
-};
-$("import").onclick=()=>$("file").click();
-$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{state=JSON.parse(rd.result);save();render();toast("Collection importée");}catch(err){toast("Fichier invalide");}};rd.readAsText(f);};
 
 // Navigation
 document.querySelectorAll(".nav-tab").forEach(tab=>{
