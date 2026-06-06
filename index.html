@@ -356,7 +356,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 <div id="teams" class="teams"><div class="loading">Connexion en cours…</div></div>
 <div class="hint">980 stickers • Tap = j'ai • re-tap = doublon (+1) • long press = retirer</div>
 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px">
-  <button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Manquants PDF</button>
+  <button class="reset" id="pdf" style="border-color:var(--gold);color:var(--gold)">📄 Manquants PDF ⭐</button>
   <button class="reset" id="export" style="border-color:var(--green);color:var(--green)">Exporter</button>
   <button class="reset" id="import" style="border-color:var(--blue);color:#5b86ff">Importer</button>
   <button class="reset" id="reset">Réinitialiser</button>
@@ -414,7 +414,7 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v2.8</div>
+<div class="version">v2.9</div>
 
 <script>
 const PLAYERS={};
@@ -721,6 +721,7 @@ function buildMissing(){
 }
 
 $("pdf").onclick=()=>{
+  if(!isPremium){toast('⭐ Export PDF disponible en Premium');return;}
   if(!window.jspdf){toast("PDF indisponible hors-ligne 1ère fois");return;}
   const groups=buildMissing(),t=totals(),{jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});const W=210,M=14;let y=20;
