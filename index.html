@@ -270,6 +270,16 @@ body.light .landing-note{color:#1a1a2e}
 .toggle-switch input:checked+.toggle-slider{background:var(--gold)}
 .toggle-switch input:checked+.toggle-slider::before{transform:translateX(22px)}
 .version{position:fixed;bottom:4px;right:8px;font-size:10px;opacity:.25;font-family:var(--font-cond);pointer-events:none}
+/* Header compact au scroll */
+header{transition:padding .3s;}
+header.compact .kicker{display:none}
+header.compact h1{font-size:22px;margin-bottom:0}
+header.compact .stats{gap:6px;margin-top:8px}
+header.compact .stat{padding:6px 10px;min-width:60px}
+header.compact .stat b{font-size:18px}
+header.compact .stat small{font-size:9px}
+header.compact .bar{margin-top:8px}
+header.compact{padding:10px 0 10px}
 /* Force mdp */
 .pwd-strength{display:flex;gap:4px;margin-top:-4px}
 .pwd-bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.1);transition:background .3s}
@@ -343,12 +353,11 @@ body.light .landing-note{color:#1a1a2e}
   <div class="loading" style="padding:4px;font-size:11px">Chargement…</div>
 </div>
 <div class="wrap">
-<header>
+<header id="mainHeader">
   <div class="kicker">FIFA World Cup • USA · Canada · Mexico</div>
   <h1>Collecto<span>Foot</span></h1>
   <div class="stats">
     <div class="stat"><b id="sHave">0</b><small>Collés</small></div>
-    <div class="stat"><b id="sTotal">980</b><small>Total</small></div>
     <div class="stat"><b id="sMiss">0</b><small>Manquants</small></div>
     <div class="stat"><b id="sDup">0</b><small>Doublons</small></div>
     <div class="stat"><b id="sExtra">0</b><small>Extra /80</small></div>
@@ -439,7 +448,7 @@ body.light .landing-note{color:#1a1a2e}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v3.7</div>
+<div class="version">v3.8</div>
 
 <script>
 const PLAYERS={};
@@ -922,6 +931,13 @@ function toggleTheme(isLight){
     const lbl=document.getElementById('themeLabel');if(lbl)lbl.textContent='☀️ Thème clair';
   }
 })();
+
+// Header compact au scroll
+window.addEventListener('scroll', () => {
+  const header = document.getElementById('mainHeader');
+  if (!header) return;
+  header.classList.toggle('compact', window.scrollY > 80);
+}, {passive: true});
 
 render();
 </script>
