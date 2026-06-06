@@ -270,6 +270,18 @@ body.light .landing-note{color:#1a1a2e}
 .toggle-switch input:checked+.toggle-slider{background:var(--gold)}
 .toggle-switch input:checked+.toggle-slider::before{transform:translateX(22px)}
 .version{position:fixed;bottom:4px;right:8px;font-size:10px;opacity:.25;font-family:var(--font-cond);pointer-events:none}
+/* Celebration */
+.celebration{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);opacity:0;transition:opacity .3s;pointer-events:none}
+.celebration.show{opacity:1;pointer-events:all}
+.celebration-box{background:linear-gradient(135deg,#1a1a2e,#0a1628);border:2px solid var(--gold);border-radius:24px;padding:40px 32px;text-align:center;transform:scale(.8);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:320px;width:90%}
+.celebration.show .celebration-box{transform:scale(1)}
+.celebration-emoji{font-size:72px;display:block;margin-bottom:16px;animation:bounce2 .6s infinite alternate}
+@keyframes bounce2{0%{transform:translateY(0) rotate(-5deg)}100%{transform:translateY(-12px) rotate(5deg)}}
+.celebration-title{font-family:var(--font-display);font-size:32px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.celebration-sub{font-size:16px;opacity:.7;margin-bottom:24px;line-height:1.4}
+.celebration-btn{background:var(--gold);color:#000;border:none;font-family:var(--font-display);font-size:14px;text-transform:uppercase;letter-spacing:.1em;padding:14px 32px;border-radius:99px;cursor:pointer}
+.confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;pointer-events:none;z-index:301}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 /* Header compact au scroll */
 header{transition:padding .3s;}
 header.compact .kicker{display:none}
@@ -448,7 +460,17 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v3.8</div>
+<div class="version">v4.0</div>
+
+<!-- Celebration modal -->
+<div class="celebration" id="celebrationModal">
+  <div class="celebration-box">
+    <span class="celebration-emoji" id="celebEmoji">🎯</span>
+    <div class="celebration-title" id="celebTitle">GOAL!</div>
+    <div class="celebration-sub" id="celebSub">Équipe complète !</div>
+    <button class="celebration-btn" onclick="closeCelebration()">Continuer ⚽</button>
+  </div>
+</div>
 
 <script>
 const PLAYERS={};
@@ -613,10 +635,12 @@ function totals(){
 }
 
 function tap(i){
+  const prevState = {...state};
   const c=state[i]||0;
   state[i]=c+1;
   if(c===0)toast("Collé ✓");else toast("Doublon +1");
   save();render();
+  checkCompletions(prevState);
 }
 function remove(i){
   if(state[i]){delete state[i];toast("Retiré");save();render();}
@@ -638,7 +662,6 @@ function render(){
   for(let i = EXTRA_BASE; i < EXTRA_BASE + extraTotal; i++) if(state[i]>0) extraHave++;
 
   $("sHave").textContent=mainHave;
-  $("sTotal").textContent=mainTotal;
   $("sMiss").textContent=mainTotal-mainHave;
   $("sDup").textContent=mainDup;
   $("sExtra").textContent=extraHave+'/80';
@@ -932,7 +955,49 @@ function toggleTheme(isLight){
   }
 })();
 
-// Header compact au scroll
+// ---- Celebration ----
+const COLORS_CONFETTI = ['#FFB200','#1a6eb5','#00A878','#D7263D','#fff'];
+function launchConfetti(count=60){
+  for(let i=0;i<count;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${COLORS_CONFETTI[Math.floor(Math.random()*COLORS_CONFETTI.length)]};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*.5}s`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }
+}
+function showCelebration(emoji, title, sub, big=false){
+  document.getElementById('celebEmoji').textContent=emoji;
+  document.getElementById('celebTitle').textContent=title;
+  document.getElementById('celebSub').textContent=sub;
+  document.getElementById('celebrationModal').classList.add('show');
+  launchConfetti(big?120:60);
+}
+function closeCelebration(){
+  document.getElementById('celebrationModal').classList.remove('show');
+}
+
+// Vérifier si une équipe vient d'être complétée
+const completedTeams = new Set();
+function checkCompletions(prevState){
+  // Vérifier équipes
+  TEAMS.forEach((tm,ti)=>{
+    const base=TEAMS_BASE+ti*PER;
+    const wasComplete = Array.from({length:PER},(_,s)=>prevState[base+s]||0).every(c=>c>0);
+    const isComplete = Array.from({length:PER},(_,s)=>state[base+s]||0).every(c=>c>0);
+    if(!wasComplete && isComplete && !completedTeams.has(ti)){
+      completedTeams.add(ti);
+      setTimeout(()=>showCelebration('🎯',`GOAL!`,`${tm[0]} ${tm[1]} complète !`), 300);
+    }
+  });
+  // Vérifier album complet (980)
+  const mainTotal = FWC_COUNT + TEAMS.length * PER;
+  let mainHave=0;
+  for(let i=FWC_BASE;i<EXTRA_BASE;i++) if(state[i]>0) mainHave++;
+  if(mainHave===mainTotal){
+    setTimeout(()=>showCelebration('🏆','CHAMPION!','Album complet ! Bravo Tonton ! 🎉', true), 300);
+  }
+}
 window.addEventListener('scroll', () => {
   const header = document.getElementById('mainHeader');
   if (!header) return;
