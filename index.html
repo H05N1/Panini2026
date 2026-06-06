@@ -462,7 +462,7 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v4.3</div>
+<div class="version">v4.4</div>
 
 <!-- Celebration modal -->
 <div class="celebration" id="celebrationModal">
@@ -711,7 +711,7 @@ function render(){
     const d=document.createElement("details");d.className="team";
     if(q||filter!=="all"||openTeams.has(ti))d.open=true;
     d.dataset.team=ti;
-    d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><button class="btn-check-all" onclick="checkAllTeam(event,${base},${PER})" title="Équipe entière">✓ Tout</button><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
+    d.innerHTML=`<summary><span class="flag">${tm[0]}</span><span class="tname">${tm[1]} <span class="abbr">${abbr}</span></span><span class="grp">Gr. ${grp}</span><span class="tprog">${have}/${PER}</span><span class="tbar"><i style="width:${Math.round(have/PER*100)}%"></i></span><span class="chev">▾</span></summary><div class="grid">${cells}</div>`;
     wrap.appendChild(d);
   });
 
@@ -1009,7 +1009,7 @@ function checkCompletions(prevState){
   let mainHave=0;
   for(let i=FWC_BASE;i<EXTRA_BASE;i++) if(state[i]>0) mainHave++;
   if(mainHave===mainTotal){
-    setTimeout(()=>showCelebration('🏆','CHAMPION!','Album complet ! Bravo Tonton ! 🎉', true), 300);
+    setTimeout(()=>showCelebration('🏆','CHAMPION!','Album complet ! 🎉', true), 300);
   }
 }
 window.addEventListener('scroll', () => {
