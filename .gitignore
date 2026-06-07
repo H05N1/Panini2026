@@ -6,7 +6,15 @@ yarn-debug.log*
 yarn-error.log*
 firebase-debug.log*
 firebase-debug.*.log*
-
+app/build/
+build/
+.gradle/
+*.keystore
+*.jks
+app-release-signed.apk
+app-release-signed.apk.idsig
+app-release-unsigned-aligned.apk
+node_modules/
 # Firebase cache
 .firebase/
 
