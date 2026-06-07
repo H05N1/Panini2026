@@ -275,12 +275,12 @@ body.light .landing-note{color:#1a1a2e}
 /* Celebration */
 .celebration{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);opacity:0;transition:opacity .3s;pointer-events:none}
 .celebration.show{opacity:1;pointer-events:all}
-.celebration-box{background:linear-gradient(135deg,#1a1a2e,#0a1628);border:2px solid var(--gold);border-radius:24px;padding:40px 32px;text-align:center;transform:scale(.8);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:320px;width:90%}
+.celebration-box{background:var(--header-bg);border:2px solid var(--gold);border-radius:24px;padding:40px 32px;text-align:center;transform:scale(.8);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:320px;width:90%}
 .celebration.show .celebration-box{transform:scale(1)}
 .celebration-emoji{font-size:72px;display:block;margin-bottom:16px;animation:bounce2 .6s infinite alternate}
 @keyframes bounce2{0%{transform:translateY(0) rotate(-5deg)}100%{transform:translateY(-12px) rotate(5deg)}}
-.celebration-title{font-family:var(--font-display);font-size:32px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-.celebration-sub{font-size:16px;opacity:.7;margin-bottom:24px;line-height:1.4}
+.celebration-title{font-family:var(--font-display);font-size:28px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.celebration-sub{font-size:16px;color:var(--text);opacity:.8;margin-bottom:24px;line-height:1.4}
 .celebration-btn{background:var(--gold);color:#000;border:none;font-family:var(--font-display);font-size:14px;text-transform:uppercase;letter-spacing:.1em;padding:14px 32px;border-radius:99px;cursor:pointer}
 .confetti-piece{position:fixed;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards;pointer-events:none;z-index:301}
 @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
@@ -406,11 +406,17 @@ header.compact{padding:10px 0 10px}
   <div class="profile-email" id="profileEmail">—</div>
   <div class="badge-free">FREE</div>
   <div class="profile-card">
-    <h3>Ma collection</h3>
+    <h3>Ma collection — 980 stickers</h3>
     <div class="profile-row"><span>Collés</span><span id="pHave">0</span></div>
     <div class="profile-row"><span>Manquants</span><span id="pMiss">0</span></div>
     <div class="profile-row"><span>Doublons</span><span id="pDup">0</span></div>
     <div class="profile-row"><span>Progression</span><span id="pPct">0%</span></div>
+  </div>
+  <div class="profile-card">
+    <h3>Extra Stickers — 80 cartes</h3>
+    <div class="profile-row"><span>Collés</span><span id="pExtraHave">0</span></div>
+    <div class="profile-row"><span>Manquants</span><span id="pExtraMiss">0</span></div>
+    <div class="profile-row"><span>Progression</span><span id="pExtraPct">0%</span></div>
   </div>
   <div class="profile-card">
     <h3>Mon compte</h3>
@@ -462,7 +468,7 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v4.4</div>
+<div class="version">v4.6</div>
 
 <!-- Celebration modal -->
 <div class="celebration" id="celebrationModal">
@@ -827,9 +833,33 @@ document.querySelectorAll(".nav-tab").forEach(tab=>{
 });
 
 function updateProfile(){
-  const t=totals(),pct=t.total>0?Math.round(t.have/t.total*100):0;
+  // Calcul principal (980)
+  const mainTotal = FWC_COUNT + TEAMS.length * PER;
+  let mainHave=0, mainDup=0;
+  for(let i=FWC_BASE;i<EXTRA_BASE;i++){
+    const c=state[i]||0;
+    if(c>0)mainHave++;
+    if(c>1)mainDup+=c-1;
+  }
+  const mainMiss = mainTotal - mainHave;
+  const mainPct = Math.round(mainHave/mainTotal*100);
+
+  // Calcul extra (80)
+  const extraTotal = EXTRA_PLAYERS.length * EXTRA_VARIANTS.length;
+  let extraHave=0;
+  for(let i=EXTRA_BASE;i<EXTRA_BASE+extraTotal;i++) if(state[i]>0) extraHave++;
+  const extraMiss = extraTotal - extraHave;
+  const extraPct = Math.round(extraHave/extraTotal*100);
+
   const el=id=>document.getElementById(id);
-  el("pHave").textContent=t.have;el("pMiss").textContent=t.miss;el("pDup").textContent=t.dup;el("pPct").textContent=pct+"%";
+  el("pHave").textContent=mainHave;
+  el("pMiss").textContent=mainMiss;
+  el("pDup").textContent=mainDup;
+  el("pPct").textContent=mainPct+"%";
+  el("pExtraHave").textContent=extraHave;
+  el("pExtraMiss").textContent=extraMiss;
+  el("pExtraPct").textContent=extraPct+"%";
+
   if(window._currentUser){
     const u=window._currentUser;
     el("profileName").textContent=u.displayName||"Utilisateur";
@@ -1001,7 +1031,7 @@ function checkCompletions(prevState){
     const isComplete = Array.from({length:PER},(_,s)=>state[base+s]||0).every(c=>c>0);
     if(!wasComplete && isComplete && !completedTeams.has(ti)){
       completedTeams.add(ti);
-      setTimeout(()=>showCelebration('⚽',`${tm[0]}`,`${tm[1]} complète !`), 300);
+      setTimeout(()=>showCelebration('⚽',`GOAL ! ${tm[0]}`,`${tm[1]} complète !`), 300);
     }
   });
   // Vérifier album complet (980)
