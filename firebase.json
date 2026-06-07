@@ -4,7 +4,21 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "app/**",
+      "build/**",
+      ".gradle/**",
+      "*.keystore",
+      "*.jks",
+      "*.apk",
+      "*.idsig",
+      "gradlew",
+      "gradlew.bat",
+      "gradle/**",
+      "*.gradle",
+      "manifest-checksum.txt",
+      "store_icon.png",
+      "twa-manifest.json"
     ],
     "headers": [
       {
