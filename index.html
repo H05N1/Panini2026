@@ -1,3 +1,5 @@
+✓ buildMissing OK
+✓ PDF onclick OK
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -468,7 +470,7 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v4.6</div>
+<div class="version">v4.7</div>
 
 <!-- Celebration modal -->
 <div class="celebration" id="celebrationModal">
@@ -785,16 +787,16 @@ function buildMissing(){
   if(fwcMiss.length)out.push({titre:"FIFA World Cup",miss:fwcMiss});
   // Teams
   TEAMS.forEach((tm,ti)=>{
-    const abbr=tm[2],grp=tm[3],roster=PLAYERS[abbr]||[],base=TEAMS_BASE+ti*PER,miss=[];
-    for(let s=0;s<PER;s++){if((state[base+s]||0)===0){let lbl=s===0?"Badge":s===1?"Photo équipe":(roster[s-2]||"Joueur "+(s-1));miss.push((s+1)+". "+lbl);}}
-    if(miss.length)out.push({titre:`${tm[1]} (${abbr}) — Groupe ${grp}`,miss});
+    const abbr=tm[2],grp=tm[3],base=TEAMS_BASE+ti*PER,miss=[];
+    for(let s=0;s<PER;s++){if((state[base+s]||0)===0){miss.push(abbr+" "+(s+1));}}
+    if(miss.length)out.push({titre:`${tm[1]} (${abbr}) — Gr. ${grp}`,miss});
   });
   // Extra
   const extraMiss=[];
   EXTRA_PLAYERS.forEach((player,pi)=>{
     EXTRA_VARIANTS.forEach((variant,vi)=>{
       const idx=EXTRA_BASE+pi*EXTRA_VARIANTS.length+vi;
-      if((state[idx]||0)===0)extraMiss.push(`${player} — ${variant}`);
+      if((state[idx]||0)===0)extraMiss.push(`${player.split(' ').pop()} ${variant}`);
     });
   });
   if(extraMiss.length)out.push({titre:"Extra Stickers",miss:extraMiss});
@@ -805,21 +807,64 @@ $("pdf").onclick=()=>{
   if(!isPremium){toast('⭐ Export PDF disponible en Premium');return;}
   if(!window.jspdf){toast("PDF indisponible hors-ligne 1ère fois");return;}
   const groups=buildMissing(),t=totals(),{jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:"mm",format:"a4"});const W=210,M=14;let y=20;
-  const hdr=()=>{doc.setFillColor(12,12,20);doc.rect(0,0,W,16,"F");doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(14);doc.text("CollectoFoot 2026 — Liste des manquants",M,11);};
-  hdr();doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");doc.setFontSize(10);
-  doc.text(`Collés ${t.have}/${t.total} • Manquants ${t.miss} • Doublons ${t.dup} • ${new Date().toLocaleDateString("fr-BE")}`,M,y);y+=8;
-  if(!groups.length){doc.setFontSize(14);doc.setTextColor(0,150,80);doc.text("🎉 Album complet, bravo Tonton !",M,y+10);}
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const W=210, M=12, COLS=8, CW=22.5, RH=7;
+  let y=0;
+
+  const hdr=()=>{
+    doc.setFillColor(12,12,20);doc.rect(0,0,W,14,"F");
+    doc.setTextColor(255,178,0);doc.setFont("helvetica","bold");doc.setFontSize(12);
+    doc.text("CollectoFoot 2026 — Manquants",M,10);
+    doc.setTextColor(180,180,180);doc.setFont("helvetica","normal");doc.setFontSize(8);
+    doc.text(new Date().toLocaleDateString("fr-BE"),W-M,10,{align:"right"});
+    y=20;
+  };
+
+  const sectionHdr=(label,count)=>{
+    if(y>282){doc.addPage();hdr();}
+    doc.setFillColor(0,71,255);doc.rect(M,y-4,W-2*M,6,"F");
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8);
+    doc.text(label,M+2,y);
+    doc.text(count+" manquant(s)",W-M-2,y,{align:"right"});
+    y+=4;
+  };
+
+  const drawGrid=(items)=>{
+    let col=0;
+    items.forEach((item)=>{
+      if(col===0 && y>284){doc.addPage();hdr();}
+      const x=M+col*CW;
+      doc.setDrawColor(180,180,180);
+      doc.setFillColor(255,255,255);
+      doc.rect(x,y,CW-1,RH,"FD");
+      doc.setDrawColor(80,80,80);
+      doc.rect(x+1,y+1.5,4,4);
+      doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(20,20,20);
+      doc.text(item,x+7,y+RH-2);
+      col++;
+      if(col>=COLS){col=0;y+=RH;}
+    });
+    if(col>0)y+=RH;
+    y+=3;
+    doc.setDrawColor(220,220,220);doc.line(M,y-1,W-M,y-1);
+    y+=3;
+  };
+
+  hdr();
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text(`Collés : ${t.have}/${t.total}   •   Manquants : ${t.miss}   •   Doublons : ${t.dup}`,M,y);y+=8;
+
+  if(!groups.length){
+    doc.setFontSize(14);doc.setTextColor(0,150,80);doc.setFont("helvetica","bold");
+    doc.text("Album complet — Bravo !",W/2,y+20,{align:"center"});
+  }
   groups.forEach(g=>{
-    if(y>275){doc.addPage();hdr();y=24;}
-    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(0,71,255);doc.text(g.titre,M,y);
-    doc.setTextColor(150,150,150);doc.setFontSize(8);doc.text(`${g.miss.length} manquant(s)`,W-M,y,{align:"right"});y+=5;
-    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(40,40,40);
-    const col=(W-2*M)/3,perCol=Math.ceil(g.miss.length/3);let maxRows=0;
-    for(let c=0;c<3;c++){const sl=g.miss.slice(c*perCol,(c+1)*perCol);maxRows=Math.max(maxRows,sl.length);sl.forEach((ln,r)=>doc.text(ln.length>34?ln.slice(0,33)+"…":ln,M+c*col,y+r*4.6));}
-    y+=maxRows*4.6+5;doc.setDrawColor(230,230,230);doc.line(M,y-3,W-M,y-3);
+    sectionHdr(g.titre, g.miss.length);
+    drawGrid(g.miss);
   });
-  doc.save("panini-manquants-"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF généré");
+
+  doc.save("collectofoot-manquants-"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF généré ✓");
 };
 
 // Navigation
