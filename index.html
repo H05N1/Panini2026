@@ -1,5 +1,3 @@
-✓ buildMissing OK
-✓ PDF onclick OK
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -99,6 +97,9 @@ window._updateDisplayName = (name) => updateProfile(auth.currentUser, {displayNa
 onAuthStateChanged(auth, user => {
   const landing = document.getElementById('landing');
   const appDiv  = document.getElementById('app');
+  const splash  = document.getElementById('splash');
+  // Cacher le splash dans tous les cas
+  setTimeout(() => { if(splash) { splash.classList.add('hide'); setTimeout(()=>splash.remove(),300); } }, 0);
   if (user) {
     currentUser = user;
     window._currentUser = user;
@@ -212,7 +213,9 @@ h1 span{color:var(--gold);-webkit-text-fill-color:var(--gold)}
 .btn-cancel-album{background:rgba(255,255,255,.07);color:#fff;cursor:pointer}
 .btn-confirm-album{background:linear-gradient(135deg,var(--gold),#ff7a00);color:#000}
 /* Landing */
-#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:40px 24px;}
+#landing{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:40px 24px;}
+#splash{position:fixed;inset:0;background:var(--ink);display:flex;align-items:center;justify-content:center;z-index:999;transition:opacity .3s}
+#splash.hide{opacity:0;pointer-events:none}
 .landing-ball{font-size:80px;margin-bottom:24px;animation:bounce 2s infinite}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
 .landing-title{font-family:var(--font-display);font-size:clamp(48px,12vw,96px);line-height:.9;text-transform:uppercase;background:linear-gradient(180deg,var(--text),#9aa3b2);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;}
@@ -310,6 +313,7 @@ header.compact{padding:10px 0 10px}
 </head>
 <body>
 
+<div id="splash"><div style="font-family:'Arial Black',sans-serif;font-size:28px;text-transform:uppercase;color:#FFB200">Collecto<span style="color:#fff">Foot</span></div></div>
 <div id="landing">
   <div class="landing-ball">⚽</div>
   <div class="landing-title">Collecto<span>Foot</span></div>
@@ -470,7 +474,7 @@ header.compact{padding:10px 0 10px}
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="version">v4.7</div>
+<div class="version">v4.8</div>
 
 <!-- Celebration modal -->
 <div class="celebration" id="celebrationModal">
